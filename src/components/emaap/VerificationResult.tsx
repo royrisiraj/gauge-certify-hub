@@ -51,7 +51,7 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
 }
 
 /** Public verification card (spec §24–§25). Max width 680px, status first. */
-export function VerificationResult({ data, shareUrl }: { data: VerificationPayload; shareUrl?: string }) {
+export function VerificationResult({ data, shareUrl }: { data: VerificationPayload; shareUrl?: string | undefined }) {
   const meta = statusMeta(data.state);
   const Icon = meta.icon;
   const cert = data.certificate;
