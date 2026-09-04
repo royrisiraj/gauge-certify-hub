@@ -1,11 +1,24 @@
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
+import { LogOut } from "lucide-react";
 import { BrandLockup } from "./Brand";
+import { supabase } from "@/integrations/supabase/client";
 
 /**
- * Public chrome (spec §25): deliberately minimal, no authenticated navigation.
+ * Public and onboarding chrome: minimal, accessible, adheres to official e-Maap styling.
  */
-export function PublicShell({ children }: { children: ReactNode }) {
+export function PublicShell({
+  children,
+  variant = "public",
+}: {
+  children: ReactNode;
+  variant?: "public" | "onboarding";
+}) {
+  async function handleSignOut() {
+    await supabase.auth.signOut();
+    window.location.assign("/auth");
+  }
+
   return (
     <div className="flex min-h-dvh flex-col bg-[#fafbfc]">
       <a
@@ -20,18 +33,20 @@ export function PublicShell({ children }: { children: ReactNode }) {
         <div className="mx-auto flex h-16 w-full max-w-[1200px] items-center justify-between px-4 md:px-8">
           <BrandLockup />
           <nav
-            aria-label="Public navigation"
+            aria-label={variant === "onboarding" ? "Onboarding navigation" : "Public navigation"}
             className="flex items-center gap-1 text-[14px] font-medium"
           >
-            <Link
-              to="/verify"
-              className="rounded-md px-3 py-2 text-foreground hover:bg-surface-muted transition-colors"
-              activeProps={{
-                className: "rounded-md px-3 py-2 bg-primary-subtle text-primary font-semibold",
-              }}
-            >
-              Verify
-            </Link>
+            {variant === "public" ? (
+              <Link
+                to="/verify"
+                className="rounded-md px-3 py-2 text-foreground hover:bg-surface-muted transition-colors"
+                activeProps={{
+                  className: "rounded-md px-3 py-2 bg-primary-subtle text-primary font-semibold",
+                }}
+              >
+                Verify
+              </Link>
+            ) : null}
             <Link
               to="/help"
               className="rounded-md px-3 py-2 text-foreground hover:bg-surface-muted transition-colors"
@@ -43,16 +58,28 @@ export function PublicShell({ children }: { children: ReactNode }) {
             </Link>
             <span
               className="ml-1 hidden rounded-md border border-border px-2.5 py-1.5 text-[13px] text-muted-foreground md:inline"
-              title="Additional languages are planned. English is the only language currently available."
+              title="Official portal language: English"
             >
               English
             </span>
-            <Link
-              to="/auth"
-              className="ml-2 rounded-lg bg-[#000080] px-3.5 py-1.5 text-[13px] font-semibold text-white shadow-sm hover:bg-[#000066] transition-colors"
-            >
-              Sign in
-            </Link>
+            {variant === "public" ? (
+              <Link
+                to="/auth"
+                className="ml-2 rounded-lg bg-[#000080] px-3.5 py-1.5 text-[13px] font-semibold text-white shadow-sm hover:bg-[#000066] transition-colors"
+              >
+                Sign in
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="ml-2 inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[13px] font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors shadow-xs cursor-pointer"
+                title="Sign out of current account"
+              >
+                <LogOut className="size-3.5" aria-hidden="true" />
+                Sign out
+              </button>
+            )}
           </nav>
         </div>
       </header>

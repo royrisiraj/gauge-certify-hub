@@ -40,7 +40,7 @@ function BusinessLayout() {
   });
 
   return (
-    <AppShell nav={NAV} contextLabel="Business" unreadCount={unread ?? 0}>
+    <AppShell nav={NAV} contextLabel="Business Owner" unreadCount={unread ?? 0}>
       <Outlet />
     </AppShell>
   );

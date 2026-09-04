@@ -83,10 +83,10 @@ const PORTAL_ROLES: RoleConfig[] = [
   },
   {
     id: "business",
-    label: "Owner",
-    subtitle: "Business Owner",
+    label: "Business Owner",
+    subtitle: "Commercial",
     icon: Building2,
-    ariaLabel: "Sign in as Owner - Commercial Business Owner",
+    ariaLabel: "Sign in as Business Owner - Commercial Business",
   },
   {
     id: "inspector",
@@ -215,9 +215,9 @@ function AdminRolePanel({ onSwitchToInspector }: { onSwitchToInspector: () => vo
           </div>
 
           <p className="mt-3 text-[12px] text-slate-600 leading-relaxed">
-            For operational tasks, please select <strong className="text-slate-900">Owner</strong>{" "}
-            (Commercial Business) or <strong className="text-slate-900">LMO Officer</strong> (Legal
-            Metrology Officer).
+            For operational tasks, please select{" "}
+            <strong className="text-slate-900">Business Owner</strong> (Commercial Business) or{" "}
+            <strong className="text-slate-900">LMO Officer</strong> (Legal Metrology Officer).
           </p>
         </div>
       </div>
@@ -356,8 +356,14 @@ function AuthPage() {
           return;
         }
 
-        // Newly signed up user with session proceeds to onboarding
-        window.location.assign("/onboarding");
+        // Newly signed up user with session proceeds to role-specific onboarding
+        const targetRole = selectedRole === "inspector" ? "inspector" : "business";
+        try {
+          sessionStorage.setItem("emaap_intended_role", targetRole);
+        } catch {
+          // storage fallback
+        }
+        window.location.assign(`/onboarding?role=${targetRole}`);
         return;
       }
 
@@ -395,7 +401,7 @@ function AuthPage() {
         if (selectedRole === "admin") {
           setError(
             `Admin role requires backend schema provisioning. Your account has operational access as ${
-              account.role === "business" ? "Owner (Business)" : "LMO Officer (Inspector)"
+              account.role === "business" ? "Business Owner" : "LMO Officer"
             }.`,
           );
           setMismatchRole(account.role);
@@ -407,17 +413,34 @@ function AuthPage() {
           setMismatchRole(account.role);
           setError(
             `Role mismatch: This account is registered as ${
-              account.role === "business" ? "an Owner (Business)" : "an LMO Officer (Inspector)"
-            }, but "${selectedRole === "business" ? "Owner" : "LMO Officer"}" was selected.`,
+              account.role === "business" ? "a Business Owner" : "an LMO Officer"
+            }, but "${selectedRole === "business" ? "Business Owner" : "LMO Officer"}" was selected.`,
           );
           return;
         }
 
-        // Match confirmed: redirect to appropriate authenticated workspace
+        // Match confirmed: check if user needs to complete onboarding
+        if (!account.fullName) {
+          try {
+            sessionStorage.setItem("emaap_intended_role", account.role);
+          } catch {
+            // storage fallback
+          }
+          window.location.assign(`/onboarding?role=${account.role}`);
+          return;
+        }
+
+        // Match confirmed and onboarding complete: redirect to appropriate authenticated workspace
         window.location.assign(homePathForRole(account.role));
       } else {
-        // New account without assigned role yet: proceed to onboarding
-        window.location.assign("/onboarding");
+        // New account without assigned role yet: proceed to role-specific onboarding
+        const targetRole = selectedRole === "inspector" ? "inspector" : "business";
+        try {
+          sessionStorage.setItem("emaap_intended_role", targetRole);
+        } catch {
+          // storage fallback
+        }
+        window.location.assign(`/onboarding?role=${targetRole}`);
       }
     } catch (caught) {
       setError(
@@ -508,15 +531,8 @@ function AuthPage() {
             className="flex items-center gap-2 text-[13px] sm:text-[14px]"
           >
             <Link
-              to="/verify"
-              className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-medium text-foreground hover:bg-surface hover:text-primary border border-transparent hover:border-border transition-colors"
-            >
-              <Search className="size-3.5 text-primary" aria-hidden="true" />
-              <span>Public Verification</span>
-            </Link>
-            <Link
               to="/help"
-              className="hidden sm:inline-flex items-center gap-1 rounded-md px-3 py-1.5 font-medium text-muted-foreground hover:bg-surface hover:text-foreground transition-colors"
+              className="inline-flex items-center gap-1 rounded-md px-3 py-1.5 font-medium text-muted-foreground hover:bg-surface hover:text-foreground transition-colors"
             >
               Help &amp; FAQ
             </Link>
@@ -795,9 +811,7 @@ function AuthPage() {
                                   className="h-8 border-error/40 text-error hover:bg-error-subtle text-[12px] font-semibold"
                                 >
                                   Switch to{" "}
-                                  {mismatchRole === "business"
-                                    ? "Business Owner"
-                                    : "LMO / Inspector"}{" "}
+                                  {mismatchRole === "business" ? "Business Owner" : "LMO Officer"}{" "}
                                   &amp; Continue →
                                 </Button>
                               </div>

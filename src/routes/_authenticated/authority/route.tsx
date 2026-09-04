@@ -39,7 +39,7 @@ function AuthorityLayout() {
   });
 
   return (
-    <AppShell nav={NAV} contextLabel="Verification authority" unreadCount={unread ?? 0}>
+    <AppShell nav={NAV} contextLabel="LMO Officer" unreadCount={unread ?? 0}>
       <Outlet />
     </AppShell>
   );
