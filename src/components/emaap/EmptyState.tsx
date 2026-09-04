@@ -1,5 +1,5 @@
-import type { LucideIcon, ReactNode } from "lucide-react";
-import type { ReactElement } from "react";
+import type { LucideIcon } from "lucide-react";
+import type { ReactElement, ReactNode } from "react";
 
 type Props = {
   icon?: LucideIcon;
