@@ -10,14 +10,22 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as HelpRouteImport } from './routes/help'
+import { Route as AuthenticatedAuthorityRouteRouteImport } from './routes/_authenticated/authority/route'
+import { Route as AuthenticatedBusinessRouteRouteImport } from './routes/_authenticated/business/route'
+import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as VerifyIndexRouteImport } from './routes/verify/index'
 import { Route as VerifyCodeRouteImport } from './routes/verify/$code'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -29,6 +37,23 @@ const HelpRoute = HelpRouteImport.update({
   id: '/help',
   path: '/help',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedAuthorityRouteRoute =
+  AuthenticatedAuthorityRouteRouteImport.update({
+    id: '/authority',
+    path: '/authority',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedBusinessRouteRoute =
+  AuthenticatedBusinessRouteRouteImport.update({
+    id: '/business',
+    path: '/business',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const VerifyIndexRoute = VerifyIndexRouteImport.update({
   id: '/verify/',
@@ -45,6 +70,9 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/help': typeof HelpRoute
+  '/authority': typeof AuthenticatedAuthorityRouteRoute
+  '/business': typeof AuthenticatedBusinessRouteRoute
+  '/onboarding': typeof AuthenticatedOnboardingRoute
   '/verify/$code': typeof VerifyCodeRoute
   '/verify/': typeof VerifyIndexRoute
 }
@@ -52,27 +80,61 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/help': typeof HelpRoute
+  '/authority': typeof AuthenticatedAuthorityRouteRoute
+  '/business': typeof AuthenticatedBusinessRouteRoute
+  '/onboarding': typeof AuthenticatedOnboardingRoute
   '/verify/$code': typeof VerifyCodeRoute
   '/verify': typeof VerifyIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/help': typeof HelpRoute
+  '/_authenticated/authority': typeof AuthenticatedAuthorityRouteRoute
+  '/_authenticated/business': typeof AuthenticatedBusinessRouteRoute
+  '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/verify/$code': typeof VerifyCodeRoute
   '/verify/': typeof VerifyIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/help' | '/verify/$code' | '/verify/'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/help'
+    | '/authority'
+    | '/business'
+    | '/onboarding'
+    | '/verify/$code'
+    | '/verify/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/help' | '/verify/$code' | '/verify'
-  id: '__root__' | '/' | '/auth' | '/help' | '/verify/$code' | '/verify/'
+  to:
+    | '/'
+    | '/auth'
+    | '/help'
+    | '/authority'
+    | '/business'
+    | '/onboarding'
+    | '/verify/$code'
+    | '/verify'
+  id:
+    | '__root__'
+    | '/'
+    | '/_authenticated'
+    | '/auth'
+    | '/help'
+    | '/_authenticated/authority'
+    | '/_authenticated/business'
+    | '/_authenticated/onboarding'
+    | '/verify/$code'
+    | '/verify/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   HelpRoute: typeof HelpRoute
   VerifyCodeRoute: typeof VerifyCodeRoute
@@ -88,6 +150,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
@@ -101,6 +170,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/help'
       preLoaderRoute: typeof HelpRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/authority': {
+      id: '/_authenticated/authority'
+      path: '/authority'
+      fullPath: '/authority'
+      preLoaderRoute: typeof AuthenticatedAuthorityRouteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/business': {
+      id: '/_authenticated/business'
+      path: '/business'
+      fullPath: '/business'
+      preLoaderRoute: typeof AuthenticatedBusinessRouteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/onboarding': {
+      id: '/_authenticated/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof AuthenticatedOnboardingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/verify/': {
       id: '/verify/'
@@ -119,8 +209,24 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAuthorityRouteRoute: typeof AuthenticatedAuthorityRouteRoute
+  AuthenticatedBusinessRouteRoute: typeof AuthenticatedBusinessRouteRoute
+  AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAuthorityRouteRoute: AuthenticatedAuthorityRouteRoute,
+  AuthenticatedBusinessRouteRoute: AuthenticatedBusinessRouteRoute,
+  AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   HelpRoute: HelpRoute,
   VerifyCodeRoute: VerifyCodeRoute,
