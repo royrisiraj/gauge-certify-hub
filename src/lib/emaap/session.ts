@@ -21,7 +21,11 @@ export async function loadAccount(): Promise<AccountContext | null> {
   const user = userData.user;
 
   const [{ data: profile }, { data: roles }] = await Promise.all([
-    supabase.from("profiles").select("full_name, business_id, authority_id, designation").eq("id", user.id).maybeSingle(),
+    supabase
+      .from("profiles")
+      .select("full_name, business_id, authority_id, designation")
+      .eq("id", user.id)
+      .maybeSingle(),
     supabase.from("user_roles").select("role").eq("user_id", user.id),
   ]);
 
@@ -45,7 +49,7 @@ export function useAccount() {
 }
 
 export function homePathForRole(role: AppRole | null | undefined): string {
-  if (role === "business") return "/business/dashboard";
-  if (role === "inspector") return "/authority/dashboard";
+  if (role === "business") return "/business";
+  if (role === "inspector") return "/authority";
   return "/onboarding";
 }

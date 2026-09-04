@@ -101,7 +101,8 @@ export const VERIFICATION_STATES: Record<string, StatusMeta> = {
   },
   SERVICE_ERROR: {
     label: "VERIFICATION UNAVAILABLE",
-    explanation: "We could not reach the verification service. This does not mean the certificate is invalid.",
+    explanation:
+      "We could not reach the verification service. This does not mean the certificate is invalid.",
     tone: "info",
     icon: WifiOff,
     glyph: "…",
@@ -117,8 +118,20 @@ export const VERIFICATION_STATES: Record<string, StatusMeta> = {
 
 /** Record-level statuses used inside the authenticated application. */
 export const RECORD_STATUSES: Record<string, StatusMeta> = {
-  submitted: { label: "SUBMITTED", explanation: "Awaiting assignment", tone: "info", icon: Circle, glyph: "○" },
-  assigned: { label: "ASSIGNED", explanation: "Assigned to an inspector", tone: "info", icon: Circle, glyph: "○" },
+  submitted: {
+    label: "SUBMITTED",
+    explanation: "Awaiting assignment",
+    tone: "info",
+    icon: Circle,
+    glyph: "○",
+  },
+  assigned: {
+    label: "ASSIGNED",
+    explanation: "Assigned to an inspector",
+    tone: "info",
+    icon: Circle,
+    glyph: "○",
+  },
   under_review: {
     label: "UNDER REVIEW",
     explanation: "Currently being assessed",
@@ -126,15 +139,63 @@ export const RECORD_STATUSES: Record<string, StatusMeta> = {
     icon: Clock,
     glyph: "○",
   },
-  completed: { label: "COMPLETED", explanation: "Assessment recorded", tone: "success", icon: CheckCircle2, glyph: "✓" },
-  rejected: { label: "REJECTED", explanation: "Request was rejected", tone: "error", icon: XCircle, glyph: "×" },
-  draft: { label: "DRAFT", explanation: "Not yet submitted", tone: "neutral", icon: MinusCircle, glyph: "○" },
-  in_progress: { label: "IN PROGRESS", explanation: "Inspection underway", tone: "info", icon: Clock, glyph: "○" },
-  active: { label: "ACTIVE", explanation: "Operationally active", tone: "success", icon: CheckCircle2, glyph: "✓" },
-  inactive: { label: "INACTIVE", explanation: "Not currently active", tone: "neutral", icon: MinusCircle, glyph: "○" },
-  suspended: { label: "SUSPENDED", explanation: "Currently not valid", tone: "error", icon: ShieldAlert, glyph: "!" },
+  completed: {
+    label: "COMPLETED",
+    explanation: "Assessment recorded",
+    tone: "success",
+    icon: CheckCircle2,
+    glyph: "✓",
+  },
+  rejected: {
+    label: "REJECTED",
+    explanation: "Request was rejected",
+    tone: "error",
+    icon: XCircle,
+    glyph: "×",
+  },
+  draft: {
+    label: "DRAFT",
+    explanation: "Not yet submitted",
+    tone: "neutral",
+    icon: MinusCircle,
+    glyph: "○",
+  },
+  in_progress: {
+    label: "IN PROGRESS",
+    explanation: "Inspection underway",
+    tone: "info",
+    icon: Clock,
+    glyph: "○",
+  },
+  active: {
+    label: "ACTIVE",
+    explanation: "Operationally active",
+    tone: "success",
+    icon: CheckCircle2,
+    glyph: "✓",
+  },
+  inactive: {
+    label: "INACTIVE",
+    explanation: "Not currently active",
+    tone: "neutral",
+    icon: MinusCircle,
+    glyph: "○",
+  },
+  suspended: {
+    label: "SUSPENDED",
+    explanation: "Currently not valid",
+    tone: "error",
+    icon: ShieldAlert,
+    glyph: "!",
+  },
   revoked: { label: "REVOKED", explanation: "Withdrawn", tone: "error", icon: Ban, glyph: "×" },
-  pass: { label: "PASS", explanation: "Within permitted tolerance", tone: "success", icon: CheckCircle2, glyph: "✓" },
+  pass: {
+    label: "PASS",
+    explanation: "Within permitted tolerance",
+    tone: "success",
+    icon: CheckCircle2,
+    glyph: "✓",
+  },
   review: {
     label: "REVIEW",
     explanation: "Near configured tolerance boundary",
@@ -142,8 +203,20 @@ export const RECORD_STATUSES: Record<string, StatusMeta> = {
     icon: AlertTriangle,
     glyph: "!",
   },
-  fail: { label: "FAIL", explanation: "Outside permitted tolerance", tone: "error", icon: XCircle, glyph: "×" },
-  verified: { label: "VERIFIED", explanation: "Assessment passed", tone: "success", icon: CheckCircle2, glyph: "✓" },
+  fail: {
+    label: "FAIL",
+    explanation: "Outside permitted tolerance",
+    tone: "error",
+    icon: XCircle,
+    glyph: "×",
+  },
+  verified: {
+    label: "VERIFIED",
+    explanation: "Assessment passed",
+    tone: "success",
+    icon: CheckCircle2,
+    glyph: "✓",
+  },
   verified_with_conditions: {
     label: "VERIFIED WITH CONDITIONS",
     explanation: "Passed with recorded conditions",
@@ -151,7 +224,13 @@ export const RECORD_STATUSES: Record<string, StatusMeta> = {
     icon: AlertTriangle,
     glyph: "!",
   },
-  failed: { label: "FAILED", explanation: "Assessment did not pass", tone: "error", icon: XCircle, glyph: "×" },
+  failed: {
+    label: "FAILED",
+    explanation: "Assessment did not pass",
+    tone: "error",
+    icon: XCircle,
+    glyph: "×",
+  },
 };
 
 export function statusMeta(key: string | null | undefined): StatusMeta {

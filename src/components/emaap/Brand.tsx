@@ -11,7 +11,12 @@ export function BrandMark({ className }: { className?: string }) {
       <rect x="1" y="1" width="30" height="30" rx="7" fill="var(--color-primary)" />
       <circle cx="16" cy="16" r="9" fill="none" stroke="white" strokeWidth="1.5" />
       <circle cx="16" cy="16" r="1.6" fill="var(--color-saffron)" />
-      <path d="M16 7v3M16 22v3M7 16h3M22 16h3" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+      <path
+        d="M16 7v3M16 22v3M7 16h3M22 16h3"
+        stroke="white"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
       <path d="M10 22 22 10" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   );

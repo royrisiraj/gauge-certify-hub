@@ -57,9 +57,9 @@
   --color-neutral-state: var(--neutral-state);
   --color-neutral-state-subtle: var(--neutral-state-subtle);
 
-  --shadow-card: 0 1px 2px rgba(16, 24, 40, 0.06);
-  --shadow-raised: 0 2px 6px rgba(16, 24, 40, 0.08);
-  --shadow-overlay: 0 12px 32px rgba(16, 24, 40, 0.16);
+  --shadow-card: 0 2px 8px -2px rgba(0, 0, 80, 0.06), 0 1px 3px rgba(0, 0, 80, 0.04);
+  --shadow-raised: 0 12px 28px -4px rgba(0, 0, 80, 0.09), 0 4px 8px -2px rgba(0, 0, 80, 0.03);
+  --shadow-overlay: 0 20px 36px -4px rgba(0, 0, 80, 0.16);
 
   --text-display: 48px;
   --text-display--line-height: 1.1;
@@ -76,48 +76,48 @@
 }
 
 :root {
-  --radius: 8px;
+  --radius: 10px;
 
-  /* Neutral surfaces */
-  --background: #f7f8fa;
+  /* Neutral surfaces - clean off-white canvas matching the login page */
+  --background: #f8fafc;
   --surface: #ffffff;
-  --surface-muted: #f1f3f5;
-  --foreground: #17202a;
+  --surface-muted: #f1f5f9;
+  --foreground: #0f172a;
   --card: #ffffff;
-  --card-foreground: #17202a;
+  --card-foreground: #0f172a;
   --popover: #ffffff;
-  --popover-foreground: #17202a;
-  --muted: #f1f3f5;
-  --muted-foreground: #475467;
-  --border: #d9dee5;
-  --border-strong: #aeb6c2;
-  --input: #d9dee5;
+  --popover-foreground: #0f172a;
+  --muted: #f1f5f9;
+  --muted-foreground: #475569;
+  --border: #e2e8f0;
+  --border-strong: #94a3b8;
+  --input: #e2e8f0;
 
-  /* Brand */
+  /* Brand - Ashoka Navy */
   --primary: #000080;
   --primary-foreground: #ffffff;
-  --primary-subtle: #e8eaf7;
-  --secondary: #334155;
+  --primary-subtle: #edf0fa;
+  --secondary: #1e293b;
   --secondary-foreground: #ffffff;
-  --accent: #e8eaf7;
+  --accent: #edf0fa;
   --accent-foreground: #000080;
   --ring: #000080;
 
-  /* Indian identity accents (used sparingly) */
+  /* Indian identity accents (used sparingly and purposefully) */
   --saffron: #ff671f;
   --india-green: #138808;
 
   /* Semantic */
   --success: #087443;
   --success-subtle: #e8f5ef;
-  --warning: #a15c00;
-  --warning-subtle: #fff4e5;
+  --warning: #b45309;
+  --warning-subtle: #fffbeb;
   --error: #b42318;
-  --error-subtle: #fdecea;
+  --error-subtle: #fef2f2;
   --info: #155eef;
-  --info-subtle: #eef4ff;
-  --neutral-state: #667085;
-  --neutral-state-subtle: #f1f3f5;
+  --info-subtle: #eff6ff;
+  --neutral-state: #64748b;
+  --neutral-state-subtle: #f1f5f9;
   --destructive: #b42318;
   --destructive-foreground: #ffffff;
 }
@@ -161,8 +161,92 @@
 @utility surface-card {
   background-color: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 12px;
+  border-radius: 14px;
   box-shadow: var(--shadow-card);
+}
+
+@utility card-accent-tricolor {
+  position: relative;
+  overflow: hidden;
+  border-top-width: 0 !important;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(
+      90deg,
+      #ff671f 0%,
+      #ff671f 30%,
+      #000080 30%,
+      #000080 70%,
+      #138808 70%,
+      #138808 100%
+    );
+  }
+}
+
+@utility card-accent-dual {
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #ff671f 0%, #ff671f 50%, #138808 50%, #138808 100%);
+  }
+}
+
+@utility card-accent-saffron {
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background-color: #ff671f;
+  }
+}
+
+@utility card-accent-navy {
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background-color: #000080;
+  }
+}
+
+@utility card-accent-green {
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background-color: #138808;
+  }
 }
 
 @utility label-text {

@@ -16,7 +16,8 @@ export const Route = createFileRoute("/_authenticated/onboarding")({
       { title: "Set up your e-Maap account" },
       {
         name: "description",
-        content: "Choose whether this account manages instruments for a business or carries out verification inspections.",
+        content:
+          "Choose whether this account manages instruments for a business or carries out verification inspections.",
       },
       { property: "og:title", content: "Set up your e-Maap account" },
       { property: "og:description", content: "Complete your e-Maap account setup." },
@@ -86,7 +87,11 @@ function OnboardingPage() {
       await queryClient.invalidateQueries({ queryKey: accountQueryKey });
       navigate({ to: homePathForRole(role), replace: true });
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Account setup could not be completed. Please try again.");
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Account setup could not be completed. Please try again.",
+      );
     } finally {
       setBusy(false);
     }
@@ -109,8 +114,16 @@ function OnboardingPage() {
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 {(
                   [
-                    { value: "business", title: "Business / instrument owner", hint: "Register instruments and request verification." },
-                    { value: "inspector", title: "Verification authority inspector", hint: "Carry out inspections and record decisions." },
+                    {
+                      value: "business",
+                      title: "Business / instrument owner",
+                      hint: "Register instruments and request verification.",
+                    },
+                    {
+                      value: "inspector",
+                      title: "Verification authority inspector",
+                      hint: "Carry out inspections and record decisions.",
+                    },
                   ] as const
                 ).map((option) => (
                   <label
@@ -139,12 +152,22 @@ function OnboardingPage() {
             <Label htmlFor="fullName" className="label-text mt-5 block">
               Full name
             </Label>
-            <Input id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} className="mt-2 h-11" />
+            <Input
+              id="fullName"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              className="mt-2 h-11"
+            />
 
             <Label htmlFor="phone" className="label-text mt-4 block">
               Phone (optional)
             </Label>
-            <Input id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} className="mt-2 h-11" />
+            <Input
+              id="phone"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              className="mt-2 h-11"
+            />
 
             {role === "business" ? (
               <>

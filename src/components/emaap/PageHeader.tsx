@@ -28,7 +28,9 @@ export function PageHeader({ title, description, crumbs, actions }: Props) {
                     {crumb.label}
                   </span>
                 )}
-                {index < crumbs.length - 1 ? <ChevronRight aria-hidden="true" className="size-3.5" /> : null}
+                {index < crumbs.length - 1 ? (
+                  <ChevronRight aria-hidden="true" className="size-3.5" />
+                ) : null}
               </li>
             ))}
           </ol>
@@ -36,8 +38,13 @@ export function PageHeader({ title, description, crumbs, actions }: Props) {
       ) : null}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="max-w-2xl">
-          <h1 className="text-h2 font-bold">{title}</h1>
-          {description ? <p className="mt-1 text-[15px] text-muted-foreground">{description}</p> : null}
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="h-1 w-6 rounded-full bg-[#ff671f]" aria-hidden="true" />
+            <span className="h-1 w-6 rounded-full bg-[#000080]" aria-hidden="true" />
+            <span className="h-1 w-6 rounded-full bg-[#138808]" aria-hidden="true" />
+          </div>
+          <h1 className="text-h2 font-bold tracking-tight text-slate-900">{title}</h1>
+          {description ? <p className="mt-1 text-[15px] text-slate-600">{description}</p> : null}
         </div>
         {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
       </div>

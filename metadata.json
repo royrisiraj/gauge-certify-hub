@@ -1,0 +1,6 @@
+{
+  "name": "e-Maap Verification Hub",
+  "description": "Legal metrology digital verification, certificate tracking, and inspection management hub.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

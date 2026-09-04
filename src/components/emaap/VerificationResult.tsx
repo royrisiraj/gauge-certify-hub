@@ -51,7 +51,13 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
 }
 
 /** Public verification card (spec §24–§25). Max width 680px, status first. */
-export function VerificationResult({ data, shareUrl }: { data: VerificationPayload; shareUrl?: string | undefined }) {
+export function VerificationResult({
+  data,
+  shareUrl,
+}: {
+  data: VerificationPayload;
+  shareUrl?: string | undefined;
+}) {
   const meta = statusMeta(data.state);
   const Icon = meta.icon;
   const cert = data.certificate;
@@ -61,13 +67,19 @@ export function VerificationResult({ data, shareUrl }: { data: VerificationPaylo
     <div className="mx-auto w-full max-w-[680px]">
       <section
         aria-labelledby="verification-status"
-        className={cn("rounded-xl border-2 px-5 py-6 sm:px-7", BANNER_TONE[meta.tone])}
+        className={cn(
+          "relative overflow-hidden rounded-xl border-2 px-5 py-6 sm:px-7 shadow-sm",
+          BANNER_TONE[meta.tone],
+        )}
       >
-        <div className="flex items-start gap-3">
+        <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#ff671f] via-[#000080] to-[#138808]" />
+        <div className="flex items-start gap-3 pt-1">
           <Icon aria-hidden="true" className="mt-0.5 size-8 shrink-0" />
           <div>
-            <p className="text-[13px] font-semibold uppercase tracking-wide opacity-80">Verification result</p>
-            <h1 id="verification-status" className="text-h2 font-bold">
+            <p className="text-[13px] font-semibold uppercase tracking-wider opacity-80">
+              Official Verification Record
+            </p>
+            <h1 id="verification-status" className="text-h2 font-bold tracking-tight">
               <span aria-hidden="true" className="mr-1.5">
                 {meta.glyph}
               </span>
@@ -84,11 +96,15 @@ export function VerificationResult({ data, shareUrl }: { data: VerificationPaylo
           <ul className="mt-2 list-disc space-y-1 pl-5 text-[15px] text-muted-foreground">
             <li>Check the identifier for typing errors, then try again.</li>
             <li>Use the exact code printed on the certificate or instrument label.</li>
-            <li>If the code is printed clearly and still not found, contact the business or the issuing authority.</li>
+            <li>
+              If the code is printed clearly and still not found, contact the business or the
+              issuing authority.
+            </li>
           </ul>
           {data.query ? (
             <p className="numeric mt-3 text-[14px] text-muted-foreground">
-              Identifier checked: <span className="font-semibold text-foreground">{data.query}</span>
+              Identifier checked:{" "}
+              <span className="font-semibold text-foreground">{data.query}</span>
             </p>
           ) : null}
         </div>
@@ -108,9 +124,15 @@ export function VerificationResult({ data, shareUrl }: { data: VerificationPaylo
             <Row label="Instrument identifier" value={instrument.public_code} />
             <Row
               label="Specified capacity"
-              value={withUnit(instrument.capacity_value, instrument.capacity_unit ?? instrument.unit)}
+              value={withUnit(
+                instrument.capacity_value,
+                instrument.capacity_unit ?? instrument.unit,
+              )}
             />
-            <Row label="Resolution" value={withUnit(instrument.resolution_value, instrument.unit)} />
+            <Row
+              label="Resolution"
+              value={withUnit(instrument.resolution_value, instrument.unit)}
+            />
           </dl>
         </section>
       ) : null}
@@ -169,21 +191,30 @@ export function VerificationResult({ data, shareUrl }: { data: VerificationPaylo
         <section className="surface-card mt-4 flex flex-col items-center gap-3 p-5 sm:p-6">
           <h2 className="text-h4 font-semibold">This verification page</h2>
           <div className="rounded-lg border border-border bg-surface p-3">
-            <QRCodeSVG value={shareUrl} size={132} level="M" title="QR code linking to this verification page" />
+            <QRCodeSVG
+              value={shareUrl}
+              size={132}
+              level="M"
+              title="QR code linking to this verification page"
+            />
           </div>
-          <p className="numeric break-all text-center text-[13px] text-muted-foreground">{shareUrl}</p>
+          <p className="numeric break-all text-center text-[13px] text-muted-foreground">
+            {shareUrl}
+          </p>
         </section>
       ) : null}
 
       <section className="mt-4 rounded-xl border border-border bg-surface-muted p-5 text-[14px] text-muted-foreground">
         <h2 className="text-h4 font-semibold text-foreground">How this verification works</h2>
         <p className="mt-2">
-          This result is provided by the verification system associated with the identifier shown above. It reflects the
-          record currently held by this system, including its status and dates.
+          This result is provided by the verification system associated with the identifier shown
+          above. It reflects the record currently held by this system, including its status and
+          dates.
         </p>
         <p className="mt-2">
-          The badge, colours and QR graphic on this page are presentation only. They are not cryptographic proof. If a
-          result looks wrong, contact the verification authority named on the record.
+          The badge, colours and QR graphic on this page are presentation only. They are not
+          cryptographic proof. If a result looks wrong, contact the verification authority named on
+          the record.
         </p>
         <p className="mt-3">
           <Link to="/verify" className="font-semibold text-primary underline">

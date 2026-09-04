@@ -13,7 +13,8 @@ export const Route = createFileRoute("/help")({
       { property: "og:title", content: "Help with verification — e-Maap" },
       {
         property: "og:description",
-        content: "What each verification status means and how to check an instrument or certificate.",
+        content:
+          "What each verification status means and how to check an instrument or certificate.",
       },
     ],
   }),
@@ -21,20 +22,39 @@ export const Route = createFileRoute("/help")({
 });
 
 const STATES = [
-  ["Verified", "A certificate exists for this instrument and is currently within its recorded validity period."],
-  ["Expiring soon", "Still valid, but the recorded validity period ends within the configured reminder window."],
-  ["Expired", "The certificate is genuine, but its validity period has ended. Expired is not the same as invalid."],
-  ["Pending / not yet verified", "A verification request exists, or none has been made yet. No decision has been recorded."],
-  ["Suspended", "The certificate exists but has been suspended by the authority, with a recorded reason."],
-  ["Failed / rejected", "An assessment or request was recorded as unsuccessful. No valid certificate results from it."],
-  ["Not found", "No record matches the identifier you entered. Check the identifier before drawing any conclusion."],
+  [
+    "Verified",
+    "A certificate exists for this instrument and is currently within its recorded validity period.",
+  ],
+  [
+    "Expiring soon",
+    "Still valid, but the recorded validity period ends within the configured reminder window.",
+  ],
+  [
+    "Expired",
+    "The certificate is genuine, but its validity period has ended. Expired is not the same as invalid.",
+  ],
+  [
+    "Pending / not yet verified",
+    "A verification request exists, or none has been made yet. No decision has been recorded.",
+  ],
+  [
+    "Suspended",
+    "The certificate exists but has been suspended by the authority, with a recorded reason.",
+  ],
+  [
+    "Failed / rejected",
+    "An assessment or request was recorded as unsuccessful. No valid certificate results from it.",
+  ],
+  [
+    "Not found",
+    "No record matches the identifier you entered. Check the identifier before drawing any conclusion.",
+  ],
   [
     "Service unavailable",
     "The verification service could not be reached. This says nothing about the certificate — no status was determined.",
   ],
 ];
-
-
 
 function HelpPage() {
   return (
@@ -71,18 +91,23 @@ function HelpPage() {
           </dl>
         </section>
 
-        <section className="mt-8 rounded-xl border border-border bg-surface-muted p-5" aria-labelledby="trust">
+        <section
+          className="mt-8 rounded-xl border border-border bg-surface-muted p-5"
+          aria-labelledby="trust"
+        >
           <h2 id="trust" className="text-h3 font-semibold">
             What a verification page does and does not prove
           </h2>
           <p className="mt-2 text-[15px] text-muted-foreground">
-            A result reflects the record held by this system for the identifier you entered. Badges, colours, seals and QR
-            graphics are presentation only — they are not proof of authenticity by themselves. If a result does not match
-            the document in front of you, contact the verification authority named on the record.
+            A result reflects the record held by this system for the identifier you entered. Badges,
+            colours, seals and QR graphics are presentation only — they are not proof of
+            authenticity by themselves. If a result does not match the document in front of you,
+            contact the verification authority named on the record.
           </p>
           <p className="mt-3 text-[15px] text-muted-foreground">
-            Validity periods, tolerance values and authority names in this deployment are illustrative demo
-            configuration. They are not statements of any legal or regulatory requirement.
+            Validity periods, tolerance values and authority names in this deployment are
+            illustrative demo configuration. They are not statements of any legal or regulatory
+            requirement.
           </p>
         </section>
 

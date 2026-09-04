@@ -31,7 +31,11 @@ export function withUnit(value: number | string | null | undefined, unit?: strin
   return `${text} ${unit}`;
 }
 
-const DATE_FMT = new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "long", year: "numeric" });
+const DATE_FMT = new Intl.DateTimeFormat("en-IN", {
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+});
 const DATETIME_FMT = new Intl.DateTimeFormat("en-IN", {
   day: "numeric",
   month: "short",

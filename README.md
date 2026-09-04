@@ -16,8 +16,6 @@ Implement these three experiences:
 
 1. Public User
 
-   
-
    - No login required.
 
    - Verify an instrument/certificate using QR/code.
@@ -44,8 +42,6 @@ Implement these three experiences:
 
 2. Business / Instrument Owner
 
-   
-
    - Authentication.
 
    - Dashboard.
@@ -65,8 +61,6 @@ Implement these three experiences:
    - Maintain business/profile information.
 
 3. Verification Authority / Inspector
-
-   
 
    - Authentication.
 

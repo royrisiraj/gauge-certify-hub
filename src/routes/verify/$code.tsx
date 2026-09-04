@@ -2,7 +2,10 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2, RefreshCw } from "lucide-react";
 import { PublicShell } from "@/components/emaap/PublicShell";
-import { VerificationResult, type VerificationPayload } from "@/components/emaap/VerificationResult";
+import {
+  VerificationResult,
+  type VerificationPayload,
+} from "@/components/emaap/VerificationResult";
 import { Button } from "@/components/ui/button";
 import { statusMeta } from "@/lib/emaap/status";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,12 +16,14 @@ export const Route = createFileRoute("/verify/$code")({
       { title: "Verification result — e-Maap" },
       {
         name: "description",
-        content: "Current verification status recorded for this instrument or certificate identifier.",
+        content:
+          "Current verification status recorded for this instrument or certificate identifier.",
       },
       { property: "og:title", content: "Verification result — e-Maap" },
       {
         property: "og:description",
-        content: "Current verification status recorded for this instrument or certificate identifier.",
+        content:
+          "Current verification status recorded for this instrument or certificate identifier.",
       },
       { name: "robots", content: "noindex" },
     ],
@@ -65,7 +70,15 @@ function VerifyResultPage() {
   );
 }
 
-function ServiceError({ code, onRetry, retrying }: { code: string; onRetry: () => void; retrying: boolean }) {
+function ServiceError({
+  code,
+  onRetry,
+  retrying,
+}: {
+  code: string;
+  onRetry: () => void;
+  retrying: boolean;
+}) {
   const meta = statusMeta("SERVICE_ERROR");
   const Icon = meta.icon;
   return (
@@ -77,7 +90,9 @@ function ServiceError({ code, onRetry, retrying }: { code: string; onRetry: () =
         <div className="flex items-start gap-3">
           <Icon aria-hidden="true" className="mt-0.5 size-8 shrink-0" />
           <div>
-            <p className="text-[13px] font-semibold uppercase tracking-wide opacity-80">Verification result</p>
+            <p className="text-[13px] font-semibold uppercase tracking-wide opacity-80">
+              Verification result
+            </p>
             <h1 className="text-h2 font-bold">{meta.label}</h1>
             <p className="mt-1 text-[15px] font-medium text-foreground">{meta.explanation}</p>
           </div>
@@ -85,8 +100,9 @@ function ServiceError({ code, onRetry, retrying }: { code: string; onRetry: () =
       </section>
       <div className="surface-card mt-4 p-5">
         <p className="text-[15px] text-foreground">
-          We could not reach the verification service just now. <strong>This does not mean the certificate is invalid.</strong>{" "}
-          No verification status has been determined for this identifier.
+          We could not reach the verification service just now.{" "}
+          <strong>This does not mean the certificate is invalid.</strong> No verification status has
+          been determined for this identifier.
         </p>
         <p className="numeric caption-text mt-2">Identifier: {code}</p>
         <div className="mt-4 flex flex-wrap gap-2">
