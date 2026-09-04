@@ -1,0 +1,11 @@
+revoke execute on function public.has_role(uuid, public.app_role) from public, anon, authenticated;
+revoke execute on function public.current_business_id() from public, anon, authenticated;
+revoke execute on function public.current_authority_id() from public, anon, authenticated;
+revoke execute on function public.assess_measurement() from public, anon, authenticated;
+revoke execute on function public.bootstrap_account(text, public.app_role, text, uuid, text, text, text) from public, anon;
+revoke execute on function public.record_decision(uuid, public.decision_type, text, text) from public, anon;
+revoke execute on function public.issue_certificate(uuid) from public, anon;
+revoke execute on function public.set_certificate_status(uuid, public.cert_status, text) from public, anon;
+revoke execute on function public.claim_request(uuid) from public, anon;
+revoke execute on function public.public_verify(text) from public;
+grant execute on function public.public_verify(text) to anon, authenticated;
