@@ -34,7 +34,7 @@ const STATES = [
   ],
 ];
 
-export default function noop() {}
+
 
 function HelpPage() {
   return (
