@@ -39,7 +39,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { loadAccount, homePathForRole, type AppRole } from "@/lib/emaap/session";
+import {
+  loadAccount,
+  homePathForRole,
+  isAccountOnboarded,
+  type AppRole,
+} from "@/lib/emaap/session";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/auth")({
@@ -420,7 +425,7 @@ function AuthPage() {
         }
 
         // Match confirmed: check if user needs to complete onboarding
-        if (!account.fullName) {
+        if (!isAccountOnboarded(account)) {
           try {
             sessionStorage.setItem("emaap_intended_role", account.role);
           } catch {

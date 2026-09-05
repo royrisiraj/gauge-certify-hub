@@ -20,6 +20,9 @@ export const Route = createFileRoute("/_authenticated/business")({
     const account = await loadAccount();
     if (!account) throw redirect({ to: "/auth" });
     if (account.role !== "business") throw redirect({ to: homePathForRole(account.role) });
+    if (!account.businessId || !account.fullName) {
+      throw redirect({ to: "/onboarding" });
+    }
     return { account };
   },
   component: BusinessLayout,

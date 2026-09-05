@@ -12,7 +12,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
-import { accountQueryKey, homePathForRole, useAccount, type AppRole } from "@/lib/emaap/session";
+import {
+  accountQueryKey,
+  homePathForRole,
+  isAccountOnboarded,
+  loadAccount,
+  useAccount,
+  type AppRole,
+} from "@/lib/emaap/session";
 
 export const Route = createFileRoute("/_authenticated/onboarding")({
   head: () => ({
@@ -94,12 +101,20 @@ function OnboardingPage() {
     enabled: effectiveRole === "inspector",
   });
 
+  // Sync pre-existing profile data if available
+  useEffect(() => {
+    if (account?.fullName) setFullName((prev) => prev || account.fullName || "");
+    if (account?.phone) setPhone((prev) => prev || account.phone || "");
+    if (account?.designation) setDesignation((prev) => prev || account.designation || "");
+    if (account?.authorityId) setAuthorityId((prev) => prev || account.authorityId || "");
+  }, [account?.fullName, account?.phone, account?.designation, account?.authorityId]);
+
   // If user already has a complete profile, navigate immediately to their role dashboard
   useEffect(() => {
-    if (account?.role && account?.fullName) {
+    if (account && isAccountOnboarded(account)) {
       navigate({ to: homePathForRole(account.role), replace: true });
     }
-  }, [account?.role, account?.fullName, navigate]);
+  }, [account, navigate]);
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -161,9 +176,64 @@ function OnboardingPage() {
 
       if (rpcError) throw rpcError;
 
+      const payload = bootstrapData as {
+        role?: string;
+        business_id?: string;
+        already?: boolean;
+      } | null;
+      let businessId = payload?.business_id ?? null;
+
+      // Safe fallback / auto-repair: if bootstrap returned without business_id,
+      // safely create or link the business record under existing RLS policies
+      if (effectiveRole === "business" && !businessId) {
+        if (!account?.userId) throw new Error("No authenticated session found");
+
+        // 1. Check if user already owns a business
+        const { data: existingBiz } = await supabase
+          .from("businesses")
+          .select("id")
+          .eq("owner_id", account.userId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (existingBiz?.id) {
+          businessId = existingBiz.id;
+        } else {
+          // 2. Insert new business record
+          const { data: newBiz, error: newBizErr } = await supabase
+            .from("businesses")
+            .insert({
+              name: businessName.trim(),
+              owner_id: account.userId,
+              contact_email: account.email ?? undefined,
+              contact_phone: phone.trim() || undefined,
+            })
+            .select("id")
+            .single();
+
+          if (newBizErr) throw newBizErr;
+          businessId = newBiz.id;
+        }
+
+        // 3. Atomically link profile.business_id
+        const { error: profileErr } = await supabase
+          .from("profiles")
+          .update({
+            full_name: fullName.trim(),
+            phone: phone.trim() || null,
+            business_id: businessId,
+          })
+          .eq("id", account.userId);
+
+        if (profileErr) throw profileErr;
+      }
+
       // Persist structured business location to businesses record
       if (effectiveRole === "business") {
-        const businessId = (bootstrapData as { business_id?: string })?.business_id;
+        if (!businessId) {
+          throw new Error("Business setup could not be completed: Missing business ID.");
+        }
 
         const fullStreet = [locationData.addressLine.trim(), locationData.locality.trim()]
           .filter(Boolean)
@@ -180,23 +250,31 @@ function OnboardingPage() {
           pincode: locationData.pincode.trim() || null,
         };
 
-        if (businessId) {
-          const { error: updateError } = await supabase
-            .from("businesses")
-            .update(locationPayload)
-            .eq("id", businessId);
+        const { error: updateError } = await supabase
+          .from("businesses")
+          .update(locationPayload)
+          .eq("id", businessId);
 
-          if (updateError) {
-            console.warn(
-              "Could not update business location in businesses table:",
-              updateError.message,
-            );
-          }
+        if (updateError) {
+          console.warn(
+            "Could not update business location in businesses table:",
+            updateError.message,
+          );
         }
       }
 
-      // Invalidate account cache so app knows user is fully registered
+      // Invalidate account cache and fetch fresh account state to guarantee business_id is set
       await queryClient.invalidateQueries({ queryKey: accountQueryKey });
+      const freshAccount = await queryClient.fetchQuery({
+        queryKey: accountQueryKey,
+        queryFn: loadAccount,
+      });
+
+      if (effectiveRole === "business" && !freshAccount?.businessId) {
+        throw new Error(
+          "Account setup verification failed: Business profile is not linked to your session. Please try again.",
+        );
+      }
 
       // Clean up temporary intended role from sessionStorage
       try {
