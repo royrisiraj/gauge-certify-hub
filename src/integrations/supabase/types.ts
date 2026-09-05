@@ -77,6 +77,9 @@ export type Database = {
           created_at: string;
           id: string;
           is_demo: boolean;
+          latitude: number | null;
+          locality: string | null;
+          longitude: number | null;
           name: string;
           owner_id: string | null;
           pincode: string | null;
@@ -91,6 +94,9 @@ export type Database = {
           created_at?: string;
           id?: string;
           is_demo?: boolean;
+          latitude?: number | null;
+          locality?: string | null;
+          longitude?: number | null;
           name: string;
           owner_id?: string | null;
           pincode?: string | null;
@@ -105,6 +111,9 @@ export type Database = {
           created_at?: string;
           id?: string;
           is_demo?: boolean;
+          latitude?: number | null;
+          locality?: string | null;
+          longitude?: number | null;
           name?: string;
           owner_id?: string | null;
           pincode?: string | null;
@@ -684,13 +693,20 @@ export type Database = {
     Functions: {
       bootstrap_account: {
         Args: {
+          p_address_line?: string;
           p_authority_id?: string;
           p_business_name?: string;
+          p_city?: string;
           p_contact_email?: string;
           p_designation?: string;
           p_full_name: string;
+          p_latitude?: number;
+          p_locality?: string;
+          p_longitude?: number;
           p_phone?: string;
+          p_pincode?: string;
           p_role: Database["public"]["Enums"]["app_role"];
+          p_state?: string;
         };
         Returns: Json;
       };

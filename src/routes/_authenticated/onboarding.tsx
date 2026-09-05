@@ -38,6 +38,37 @@ export const Route = createFileRoute("/_authenticated/onboarding")({
   component: OnboardingPage,
 });
 
+type BootstrapPayload = {
+  role?: string;
+  business_id?: string;
+  already?: boolean;
+} | null;
+
+function extractTechnicalError(caught: unknown): string {
+  if (!caught) return "An unexpected error occurred.";
+  if (typeof caught === "string") return caught;
+  if (caught instanceof Error && caught.message) return caught.message;
+
+  if (typeof caught === "object") {
+    const err = caught as Record<string, unknown>;
+    const message = typeof err.message === "string" ? err.message : null;
+    const details = typeof err.details === "string" ? err.details : null;
+    const hint = typeof err.hint === "string" ? err.hint : null;
+    const code = typeof err.code === "string" ? err.code : null;
+
+    if (message && details) {
+      return `${message} (${details})`;
+    }
+    if (message) {
+      return hint ? `${message} (Hint: ${hint})` : message;
+    }
+    if (details) return details;
+    if (code) return `Database error [${code}]`;
+  }
+
+  return "Account setup could not be completed. Please verify your details and try again.";
+}
+
 function OnboardingPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -164,7 +195,14 @@ function OnboardingPage() {
 
     setBusy(true);
     try {
-      const { data: bootstrapData, error: rpcError } = await supabase.rpc("bootstrap_account", {
+      const fullStreet = [locationData.addressLine.trim(), locationData.locality.trim()]
+        .filter(Boolean)
+        .join(", ");
+
+      let businessId: string | null = null;
+
+      // 1. Authoritative Backend RPC Call
+      const rpcArgs: Record<string, unknown> = {
         p_role: effectiveRole,
         p_full_name: fullName.trim(),
         p_business_name: effectiveRole === "business" ? businessName.trim() : undefined,
@@ -172,51 +210,78 @@ function OnboardingPage() {
         p_designation: effectiveRole === "inspector" ? designation.trim() || undefined : undefined,
         p_phone: phone.trim() || undefined,
         p_contact_email: account?.email ?? undefined,
-      });
+      };
 
-      if (rpcError) throw rpcError;
+      if (effectiveRole === "business") {
+        rpcArgs.p_address_line = locationData.addressLine.trim() || undefined;
+        rpcArgs.p_locality = locationData.locality.trim() || undefined;
+        rpcArgs.p_city = locationData.city.trim() || undefined;
+        rpcArgs.p_state = locationData.state.trim() || undefined;
+        rpcArgs.p_pincode = locationData.pincode.trim() || undefined;
+        rpcArgs.p_latitude = locationData.latitude !== null ? locationData.latitude : undefined;
+        rpcArgs.p_longitude = locationData.longitude !== null ? locationData.longitude : undefined;
+      }
 
-      const payload = bootstrapData as {
-        role?: string;
-        business_id?: string;
-        already?: boolean;
-      } | null;
-      let businessId = payload?.business_id ?? null;
+      const { data: bootstrapData, error: rpcError } = await supabase.rpc(
+        "bootstrap_account",
+        rpcArgs as never,
+      );
 
-      // Safe fallback / auto-repair: if bootstrap returned without business_id,
-      // safely create or link the business record under existing RLS policies
+      if (rpcError) {
+        const errCode = (rpcError as { code?: string })?.code;
+        // If the live database is pending the 13-parameter migration (PGRST202 schema cache error),
+        // call the legacy 7-parameter signature
+        if (errCode === "PGRST202") {
+          console.warn("bootstrap_account extended RPC pending migration, trying legacy signature");
+          const { data: legacyData, error: legacyErr } = await supabase.rpc("bootstrap_account", {
+            p_role: effectiveRole,
+            p_full_name: fullName.trim(),
+            p_business_name: effectiveRole === "business" ? businessName.trim() : undefined,
+            p_authority_id: effectiveRole === "inspector" ? authorityId : undefined,
+            p_designation:
+              effectiveRole === "inspector" ? designation.trim() || undefined : undefined,
+            p_phone: phone.trim() || undefined,
+            p_contact_email: account?.email ?? undefined,
+          } as never);
+
+          if (legacyErr) throw legacyErr;
+          const legacyPayload = legacyData as BootstrapPayload;
+          businessId = legacyPayload?.business_id ?? null;
+        } else {
+          throw rpcError;
+        }
+      } else {
+        const payload = bootstrapData as BootstrapPayload;
+        businessId = payload?.business_id ?? null;
+      }
+
+      // Safe recovery if legacy backend returned without business_id:
       if (effectiveRole === "business" && !businessId) {
         if (!account?.userId) throw new Error("No authenticated session found");
 
-        // 1. Check if user already owns a business
-        const { data: existingBiz } = await supabase
-          .from("businesses")
-          .select("id")
-          .eq("owner_id", account.userId)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
+        // Use client-generated UUID so we do not trigger SELECT under RLS before profile link
+        const newBizId = crypto.randomUUID();
+        const { error: newBizErr } = await supabase.from("businesses").insert({
+          id: newBizId,
+          name: businessName.trim(),
+          owner_id: account.userId,
+          contact_email: account.email ?? undefined,
+          contact_phone: phone.trim() || undefined,
+          address_line: fullStreet || undefined,
+          city: locationData.city.trim() || undefined,
+          state: locationData.state.trim() || undefined,
+          pincode: locationData.pincode.trim() || undefined,
+          latitude: locationData.latitude,
+          longitude: locationData.longitude,
+        });
 
-        if (existingBiz?.id) {
-          businessId = existingBiz.id;
-        } else {
-          // 2. Insert new business record
-          const { data: newBiz, error: newBizErr } = await supabase
-            .from("businesses")
-            .insert({
-              name: businessName.trim(),
-              owner_id: account.userId,
-              contact_email: account.email ?? undefined,
-              contact_phone: phone.trim() || undefined,
-            })
-            .select("id")
-            .single();
-
-          if (newBizErr) throw newBizErr;
-          businessId = newBiz.id;
+        if (newBizErr) {
+          console.error("Business record creation failed:", newBizErr);
+          throw newBizErr;
         }
+        businessId = newBizId;
 
-        // 3. Atomically link profile.business_id
+        // Atomically link profiles.business_id = newBizId
         const { error: profileErr } = await supabase
           .from("profiles")
           .update({
@@ -226,29 +291,27 @@ function OnboardingPage() {
           })
           .eq("id", account.userId);
 
-        if (profileErr) throw profileErr;
+        if (profileErr) {
+          console.error("Profile business linkage failed:", profileErr);
+          throw profileErr;
+        }
       }
 
-      // Persist structured business location to businesses record
-      if (effectiveRole === "business") {
-        if (!businessId) {
-          throw new Error("Business setup could not be completed: Missing business ID.");
-        }
-
-        const fullStreet = [locationData.addressLine.trim(), locationData.locality.trim()]
-          .filter(Boolean)
-          .join(", ");
-
-        const locationPayload = {
-          address_line:
-            fullStreet ||
-            (locationData.latitude && locationData.longitude
-              ? `Map Pin (${locationData.latitude.toFixed(4)}, ${locationData.longitude.toFixed(4)})`
-              : null),
+      // Persist / update location data on businesses record
+      if (effectiveRole === "business" && businessId) {
+        const locationPayload: Record<string, unknown> = {
+          address_line: locationData.addressLine.trim() || null,
+          locality: locationData.locality.trim() || null,
           city: locationData.city.trim() || null,
           state: locationData.state.trim() || null,
           pincode: locationData.pincode.trim() || null,
         };
+        if (locationData.latitude !== null) {
+          locationPayload.latitude = locationData.latitude;
+        }
+        if (locationData.longitude !== null) {
+          locationPayload.longitude = locationData.longitude;
+        }
 
         const { error: updateError } = await supabase
           .from("businesses")
@@ -256,10 +319,7 @@ function OnboardingPage() {
           .eq("id", businessId);
 
         if (updateError) {
-          console.warn(
-            "Could not update business location in businesses table:",
-            updateError.message,
-          );
+          console.warn("Could not update business location in businesses table:", updateError);
         }
       }
 
@@ -272,7 +332,7 @@ function OnboardingPage() {
 
       if (effectiveRole === "business" && !freshAccount?.businessId) {
         throw new Error(
-          "Account setup verification failed: Business profile is not linked to your session. Please try again.",
+          "Account setup verification failed: Business profile is not linked to your session. Please verify your details and try again.",
         );
       }
 
@@ -286,11 +346,8 @@ function OnboardingPage() {
       // Direct navigation to authorized portal
       navigate({ to: homePathForRole(effectiveRole), replace: true });
     } catch (caught) {
-      setError(
-        caught instanceof Error
-          ? caught.message
-          : "Account setup could not be completed. Please verify your details and try again.",
-      );
+      console.error("Onboarding submission failed:", caught);
+      setError(extractTechnicalError(caught));
     } finally {
       setBusy(false);
     }
