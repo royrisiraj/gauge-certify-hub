@@ -398,6 +398,7 @@ export function BusinessLocationPicker({ value, onChange, error }: BusinessLocat
   // Geolocation handler: "Use My Current Location"
   // ONLY triggered when the user explicitly clicks the button.
   async function handleUseCurrentLocation() {
+    // Reset any previous notices so no error is shown while waiting
     setGeoNotice(null);
 
     if (typeof window === "undefined" || !("geolocation" in navigator)) {
@@ -410,66 +411,114 @@ export function BusinessLocationPicker({ value, onChange, error }: BusinessLocat
       return;
     }
 
+    if (typeof window !== "undefined" && !window.isSecureContext) {
+      setGeoNotice({
+        type: "info",
+        title: "Secure Connection Required",
+        message:
+          "Browser geolocation requires a secure HTTPS connection. Please access the application over HTTPS or enter your address manually.",
+      });
+      return;
+    }
+
     setIsGeolocating(true);
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        setIsGeolocating(false);
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
 
-        if (mapInstanceRef.current && markerRef.current) {
-          markerRef.current.setLatLng([lat, lng]);
-          mapInstanceRef.current.setView([lat, lng], 16, { animate: true });
-        }
+    const onLocationSuccess = async (pos: GeolocationPosition) => {
+      setIsGeolocating(false);
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
 
-        await reverseGeocode(lat, lng);
+      if (mapInstanceRef.current && markerRef.current) {
+        markerRef.current.setLatLng([lat, lng]);
+        mapInstanceRef.current.setView([lat, lng], 16, { animate: true });
+      }
+
+      await reverseGeocode(lat, lng);
+
+      setGeoNotice({
+        type: "success",
+        title: "Current location selected",
+        message:
+          "Your establishment position has been set from GPS. Address fields have been synchronized.",
+      });
+    };
+
+    const onLocationError = (err: GeolocationPositionError) => {
+      setIsGeolocating(false);
+      if (err.code === 1) {
+        // GeolocationPositionError.PERMISSION_DENIED
+        const inIframe = typeof window !== "undefined" && window.self !== window.top;
+        const isPolicyBlocked =
+          err.message && /policy|feature|disallowed|frame|delegate/i.test(err.message);
 
         setGeoNotice({
-          type: "success",
-          title: "Current location selected",
+          type: "denied",
+          title: "Location Permission Denied",
           message:
-            "Your establishment position has been set from GPS. Address fields have been synchronized.",
+            isPolicyBlocked && inIframe
+              ? "Location access was restricted by the browser frame. You can open the application in a new tab or enter your address manually."
+              : "Location access was denied. You can still enter your business address manually or select a location on the map.",
         });
-      },
-      (err) => {
-        setIsGeolocating(false);
-        if (err.code === 1) {
-          // Permission Denied
-          setGeoNotice({
-            type: "denied",
-            title: "Location Permission Denied",
-            message:
-              "Location access was denied. You can still enter your business address manually or select a location on the map.",
-          });
-        } else if (err.code === 2) {
-          // Position Unavailable
-          setGeoNotice({
-            type: "info",
-            title: "Location Unavailable",
-            message:
-              "GPS location is currently unavailable. You can enter your business address manually or select on the map.",
-          });
-        } else if (err.code === 3) {
-          // Timeout
-          setGeoNotice({
-            type: "info",
-            title: "Location Request Timed Out",
-            message:
-              "Acquiring GPS location timed out. Please enter your address manually or select on the map.",
-          });
-        } else {
-          setGeoNotice({
-            type: "info",
-            title: "Location Error",
-            message:
-              "Could not obtain current location. You can select your location on the map or enter your address manually.",
-          });
+      } else if (err.code === 2) {
+        // GeolocationPositionError.POSITION_UNAVAILABLE
+        setGeoNotice({
+          type: "info",
+          title: "Location Unavailable",
+          message:
+            "GPS/device position is currently unavailable. You can enter your business address manually or select on the map.",
+        });
+      } else if (err.code === 3) {
+        // GeolocationPositionError.TIMEOUT
+        setGeoNotice({
+          type: "info",
+          title: "Location Request Timed Out",
+          message:
+            "Acquiring GPS location timed out. Please enter your address manually or select on the map.",
+        });
+      } else {
+        setGeoNotice({
+          type: "info",
+          title: "Location Error",
+          message:
+            "Could not obtain current location. You can select your location on the map or enter your address manually.",
+        });
+      }
+    };
+
+    // Primary call to browser's native Geolocation API
+    // Starts with high accuracy; if it times out on a desktop without GPS hardware, falls back to standard accuracy
+    navigator.geolocation.getCurrentPosition(
+      onLocationSuccess,
+      (firstErr) => {
+        // If explicitly denied by the user (code 1), do NOT retry; immediately report permission denied
+        if (firstErr.code === 1) {
+          onLocationError(firstErr);
+          return;
         }
+
+        // If high accuracy timed out or was unavailable (e.g. desktop device without GPS chip),
+        // try standard accuracy once before reporting timeout or unavailable
+        if (firstErr.code === 3 || firstErr.code === 2) {
+          navigator.geolocation.getCurrentPosition(
+            onLocationSuccess,
+            (secondErr) => {
+              onLocationError(secondErr);
+            },
+            {
+              enableHighAccuracy: false,
+              timeout: 10000,
+              maximumAge: 60000,
+            },
+          );
+          return;
+        }
+
+        onLocationError(firstErr);
       },
       {
         enableHighAccuracy: true,
         timeout: 10000,
-        maximumAge: 30000,
+        maximumAge: 0,
       },
     );
   }
@@ -618,7 +667,7 @@ export function BusinessLocationPicker({ value, onChange, error }: BusinessLocat
             {isGeolocating ? (
               <span className="flex items-center gap-1.5">
                 <Loader2 className="size-4 animate-spin text-[#000080]" aria-hidden="true" />
-                <span>Detecting Location…</span>
+                <span>Getting your location...</span>
               </span>
             ) : (
               <span className="flex items-center gap-1.5">
