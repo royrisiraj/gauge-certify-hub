@@ -51,10 +51,10 @@ function extractTechnicalError(caught: unknown): string {
 
   if (typeof caught === "object") {
     const err = caught as Record<string, unknown>;
-    const message = typeof err.message === "string" ? err.message : null;
-    const details = typeof err.details === "string" ? err.details : null;
-    const hint = typeof err.hint === "string" ? err.hint : null;
-    const code = typeof err.code === "string" ? err.code : null;
+    const message = typeof err["message"] === "string" ? err["message"] : null;
+    const details = typeof err["details"] === "string" ? err["details"] : null;
+    const hint = typeof err["hint"] === "string" ? err["hint"] : null;
+    const code = typeof err["code"] === "string" ? err["code"] : null;
 
     if (message && details) {
       return `${message} (${details})`;
@@ -213,13 +213,13 @@ function OnboardingPage() {
       };
 
       if (effectiveRole === "business") {
-        rpcArgs.p_address_line = locationData.addressLine.trim() || undefined;
-        rpcArgs.p_locality = locationData.locality.trim() || undefined;
-        rpcArgs.p_city = locationData.city.trim() || undefined;
-        rpcArgs.p_state = locationData.state.trim() || undefined;
-        rpcArgs.p_pincode = locationData.pincode.trim() || undefined;
-        rpcArgs.p_latitude = locationData.latitude !== null ? locationData.latitude : undefined;
-        rpcArgs.p_longitude = locationData.longitude !== null ? locationData.longitude : undefined;
+        rpcArgs["p_address_line"] = locationData.addressLine.trim() || undefined;
+        rpcArgs["p_locality"] = locationData.locality.trim() || undefined;
+        rpcArgs["p_city"] = locationData.city.trim() || undefined;
+        rpcArgs["p_state"] = locationData.state.trim() || undefined;
+        rpcArgs["p_pincode"] = locationData.pincode.trim() || undefined;
+        rpcArgs["p_latitude"] = locationData.latitude !== null ? locationData.latitude : undefined;
+        rpcArgs["p_longitude"] = locationData.longitude !== null ? locationData.longitude : undefined;
       }
 
       const { data: bootstrapData, error: rpcError } = await supabase.rpc(
@@ -261,19 +261,37 @@ function OnboardingPage() {
 
         // Use client-generated UUID so we do not trigger SELECT under RLS before profile link
         const newBizId = crypto.randomUUID();
-        const { error: newBizErr } = await supabase.from("businesses").insert({
+
+        // Build the full insert payload including location columns
+        const fullBizPayload: Record<string, unknown> = {
           id: newBizId,
           name: businessName.trim(),
           owner_id: account.userId,
-          contact_email: account.email ?? undefined,
-          contact_phone: phone.trim() || undefined,
-          address_line: fullStreet || undefined,
-          city: locationData.city.trim() || undefined,
-          state: locationData.state.trim() || undefined,
-          pincode: locationData.pincode.trim() || undefined,
+          contact_email: account.email ?? null,
+          contact_phone: phone.trim() || null,
+          address_line: fullStreet || null,
+          city: locationData.city.trim() || null,
+          state: locationData.state.trim() || null,
+          pincode: locationData.pincode.trim() || null,
           latitude: locationData.latitude,
           longitude: locationData.longitude,
-        });
+        };
+
+        let { error: newBizErr } = await supabase.from("businesses").insert(fullBizPayload as never);
+
+        // If the live DB schema has not been migrated and latitude/longitude columns are missing,
+        // PostgREST returns a schema cache error. Retry without location coordinate columns.
+        if (
+          newBizErr &&
+          (newBizErr.message?.includes("schema cache") ||
+            newBizErr.message?.includes("column") ||
+            newBizErr.code === "PGRST204")
+        ) {
+          console.warn("Business insert: location columns not in live schema, retrying without coordinates");
+          const { latitude: _lat, longitude: _lng, ...reducedPayload } = fullBizPayload;
+          const retryResult = await supabase.from("businesses").insert(reducedPayload as never);
+          newBizErr = retryResult.error;
+        }
 
         if (newBizErr) {
           console.error("Business record creation failed:", newBizErr);
@@ -305,18 +323,30 @@ function OnboardingPage() {
           city: locationData.city.trim() || null,
           state: locationData.state.trim() || null,
           pincode: locationData.pincode.trim() || null,
+          ...(locationData.latitude !== null ? { latitude: locationData.latitude } : {}),
+          ...(locationData.longitude !== null ? { longitude: locationData.longitude } : {}),
         };
-        if (locationData.latitude !== null) {
-          locationPayload.latitude = locationData.latitude;
-        }
-        if (locationData.longitude !== null) {
-          locationPayload.longitude = locationData.longitude;
-        }
 
-        const { error: updateError } = await supabase
+        let { error: updateError } = await supabase
           .from("businesses")
-          .update(locationPayload)
+          .update(locationPayload as never)
           .eq("id", businessId);
+
+        // If schema cache error due to missing location columns, retry without them
+        if (
+          updateError &&
+          (updateError.message?.includes("schema cache") ||
+            updateError.message?.includes("column") ||
+            updateError.code === "PGRST204")
+        ) {
+          console.warn("Business update: location columns not in live schema, retrying without coordinates");
+          const { latitude: _lat, longitude: _lng, locality: _loc, ...reducedPayload } = locationPayload;
+          const retryResult = await supabase
+            .from("businesses")
+            .update(reducedPayload as never)
+            .eq("id", businessId);
+          updateError = retryResult.error;
+        }
 
         if (updateError) {
           console.warn("Could not update business location in businesses table:", updateError);

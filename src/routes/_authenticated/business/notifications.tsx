@@ -23,9 +23,8 @@ type NotificationRow = {
   id: string;
   user_id: string;
   title: string;
-  body: string;
+  body: string | null;
   link: string | null;
-  type: string;
   read_at: string | null;
   created_at: string;
 };
@@ -62,7 +61,7 @@ function BusinessNotificationsPage() {
       if (!userId) return [];
       const { data, error } = await supabase
         .from("notifications")
-        .select("id, user_id, title, body, link, type, read_at, created_at")
+        .select("id, user_id, title, body, link, read_at, created_at")
         .eq("user_id", userId)
         .order("created_at", { ascending: false });
       if (error) throw error;

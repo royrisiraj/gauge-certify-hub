@@ -157,7 +157,7 @@ function BusinessProfilePage() {
       const { error: profError } = await supabase
         .from("profiles")
         .update({
-          full_name: fullName.trim() || null,
+          full_name: fullName.trim() || account?.fullName || "Business Representative",
           phone: userPhone.trim() || null,
           designation: designation.trim() || null,
         })

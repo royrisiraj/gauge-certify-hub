@@ -98,9 +98,10 @@ export const Route = createFileRoute("/_authenticated/business/instruments")({
       },
     ],
   }),
-  validateSearch: (search: Record<string, unknown>) => ({
-    register: search.register === true || search.register === "true",
-  }),
+  validateSearch: (search: Record<string, unknown>): { register?: boolean } => {
+    const isRegister = search["register"] === true || search["register"] === "true";
+    return isRegister ? { register: true } : {};
+  },
   component: BusinessInstrumentsPage,
 });
 
@@ -115,7 +116,9 @@ function BusinessInstrumentsPage() {
 
   // Registration Dialog State
   const [isRegisterOpen, setIsRegisterOpen] = useState(searchParams.register || false);
-  const [category, setCategory] = useState(STANDARD_CATEGORIES[0]);
+  const [category, setCategory] = useState<string>(
+    STANDARD_CATEGORIES[0] ?? "Non-Automatic Weighing Instrument (NAWI)",
+  );
   const [manufacturer, setManufacturer] = useState("");
   const [model, setModel] = useState("");
   const [serialNumber, setSerialNumber] = useState("");
@@ -891,25 +894,28 @@ function BusinessInstrumentsPage() {
               </div>
 
               {/* Latest Certificate Info */}
-              {selectedInstrument.certificates && selectedInstrument.certificates.length > 0 ? (
-                <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-3.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[12px] font-bold uppercase text-emerald-800 flex items-center gap-1.5">
-                      <CheckCircle2 className="size-4 text-emerald-600" aria-hidden="true" />
-                      Active Certificate
-                    </span>
-                    <StatusBadge status={selectedInstrument.certificates[0].status} size="sm" />
-                  </div>
-                  <p className="mt-1 font-mono text-[14px] font-bold text-slate-900">
-                    {selectedInstrument.certificates[0].certificate_number}
-                  </p>
-                  <p className="text-[12px] text-slate-600">
-                    Valid from{" "}
-                    {new Date(selectedInstrument.certificates[0].valid_from).toLocaleDateString()}{" "}
-                    until{" "}
-                    {new Date(selectedInstrument.certificates[0].valid_until).toLocaleDateString()}
-                  </p>
-                </div>
+              {selectedInstrument.certificates && selectedInstrument.certificates[0] ? (
+                (() => {
+                  const cert = selectedInstrument.certificates[0];
+                  return (
+                    <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-3.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[12px] font-bold uppercase text-emerald-800 flex items-center gap-1.5">
+                          <CheckCircle2 className="size-4 text-emerald-600" aria-hidden="true" />
+                          Active Certificate
+                        </span>
+                        <StatusBadge status={cert.status} size="sm" />
+                      </div>
+                      <p className="mt-1 font-mono text-[14px] font-bold text-slate-900">
+                        {cert.certificate_number}
+                      </p>
+                      <p className="text-[12px] text-slate-600">
+                        Valid from {new Date(cert.valid_from).toLocaleDateString()} until{" "}
+                        {new Date(cert.valid_until).toLocaleDateString()}
+                      </p>
+                    </div>
+                  );
+                })()
               ) : null}
             </div>
           ) : null}

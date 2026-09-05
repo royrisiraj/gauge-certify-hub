@@ -18,6 +18,13 @@ import { Route as AuthenticatedBusinessRouteRouteImport } from './routes/_authen
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as VerifyIndexRouteImport } from './routes/verify/index'
 import { Route as VerifyCodeRouteImport } from './routes/verify/$code'
+import { Route as AuthenticatedBusinessIndexRouteImport } from './routes/_authenticated/business/index'
+import { Route as AuthenticatedBusinessCertificatesRouteImport } from './routes/_authenticated/business/certificates'
+import { Route as AuthenticatedBusinessDashboardRouteImport } from './routes/_authenticated/business/dashboard'
+import { Route as AuthenticatedBusinessInstrumentsRouteImport } from './routes/_authenticated/business/instruments'
+import { Route as AuthenticatedBusinessNotificationsRouteImport } from './routes/_authenticated/business/notifications'
+import { Route as AuthenticatedBusinessProfileRouteImport } from './routes/_authenticated/business/profile'
+import { Route as AuthenticatedBusinessRequestsRouteImport } from './routes/_authenticated/business/requests'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -65,26 +72,81 @@ const VerifyCodeRoute = VerifyCodeRouteImport.update({
   path: '/verify/$code',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedBusinessIndexRoute =
+  AuthenticatedBusinessIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedBusinessRouteRoute,
+  } as any)
+const AuthenticatedBusinessCertificatesRoute =
+  AuthenticatedBusinessCertificatesRouteImport.update({
+    id: '/certificates',
+    path: '/certificates',
+    getParentRoute: () => AuthenticatedBusinessRouteRoute,
+  } as any)
+const AuthenticatedBusinessDashboardRoute =
+  AuthenticatedBusinessDashboardRouteImport.update({
+    id: '/dashboard',
+    path: '/dashboard',
+    getParentRoute: () => AuthenticatedBusinessRouteRoute,
+  } as any)
+const AuthenticatedBusinessInstrumentsRoute =
+  AuthenticatedBusinessInstrumentsRouteImport.update({
+    id: '/instruments',
+    path: '/instruments',
+    getParentRoute: () => AuthenticatedBusinessRouteRoute,
+  } as any)
+const AuthenticatedBusinessNotificationsRoute =
+  AuthenticatedBusinessNotificationsRouteImport.update({
+    id: '/notifications',
+    path: '/notifications',
+    getParentRoute: () => AuthenticatedBusinessRouteRoute,
+  } as any)
+const AuthenticatedBusinessProfileRoute =
+  AuthenticatedBusinessProfileRouteImport.update({
+    id: '/profile',
+    path: '/profile',
+    getParentRoute: () => AuthenticatedBusinessRouteRoute,
+  } as any)
+const AuthenticatedBusinessRequestsRoute =
+  AuthenticatedBusinessRequestsRouteImport.update({
+    id: '/requests',
+    path: '/requests',
+    getParentRoute: () => AuthenticatedBusinessRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/help': typeof HelpRoute
   '/authority': typeof AuthenticatedAuthorityRouteRoute
-  '/business': typeof AuthenticatedBusinessRouteRoute
+  '/business': typeof AuthenticatedBusinessRouteRouteWithChildren
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/verify/$code': typeof VerifyCodeRoute
   '/verify/': typeof VerifyIndexRoute
+  '/business/certificates': typeof AuthenticatedBusinessCertificatesRoute
+  '/business/dashboard': typeof AuthenticatedBusinessDashboardRoute
+  '/business/instruments': typeof AuthenticatedBusinessInstrumentsRoute
+  '/business/notifications': typeof AuthenticatedBusinessNotificationsRoute
+  '/business/profile': typeof AuthenticatedBusinessProfileRoute
+  '/business/requests': typeof AuthenticatedBusinessRequestsRoute
+  '/business/': typeof AuthenticatedBusinessIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/help': typeof HelpRoute
   '/authority': typeof AuthenticatedAuthorityRouteRoute
-  '/business': typeof AuthenticatedBusinessRouteRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/verify/$code': typeof VerifyCodeRoute
   '/verify': typeof VerifyIndexRoute
+  '/business/certificates': typeof AuthenticatedBusinessCertificatesRoute
+  '/business/dashboard': typeof AuthenticatedBusinessDashboardRoute
+  '/business/instruments': typeof AuthenticatedBusinessInstrumentsRoute
+  '/business/notifications': typeof AuthenticatedBusinessNotificationsRoute
+  '/business/profile': typeof AuthenticatedBusinessProfileRoute
+  '/business/requests': typeof AuthenticatedBusinessRequestsRoute
+  '/business': typeof AuthenticatedBusinessIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -93,10 +155,17 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/help': typeof HelpRoute
   '/_authenticated/authority': typeof AuthenticatedAuthorityRouteRoute
-  '/_authenticated/business': typeof AuthenticatedBusinessRouteRoute
+  '/_authenticated/business': typeof AuthenticatedBusinessRouteRouteWithChildren
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/verify/$code': typeof VerifyCodeRoute
   '/verify/': typeof VerifyIndexRoute
+  '/_authenticated/business/certificates': typeof AuthenticatedBusinessCertificatesRoute
+  '/_authenticated/business/dashboard': typeof AuthenticatedBusinessDashboardRoute
+  '/_authenticated/business/instruments': typeof AuthenticatedBusinessInstrumentsRoute
+  '/_authenticated/business/notifications': typeof AuthenticatedBusinessNotificationsRoute
+  '/_authenticated/business/profile': typeof AuthenticatedBusinessProfileRoute
+  '/_authenticated/business/requests': typeof AuthenticatedBusinessRequestsRoute
+  '/_authenticated/business/': typeof AuthenticatedBusinessIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -109,16 +178,29 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/verify/$code'
     | '/verify/'
+    | '/business/certificates'
+    | '/business/dashboard'
+    | '/business/instruments'
+    | '/business/notifications'
+    | '/business/profile'
+    | '/business/requests'
+    | '/business/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/auth'
     | '/help'
     | '/authority'
-    | '/business'
     | '/onboarding'
     | '/verify/$code'
     | '/verify'
+    | '/business/certificates'
+    | '/business/dashboard'
+    | '/business/instruments'
+    | '/business/notifications'
+    | '/business/profile'
+    | '/business/requests'
+    | '/business'
   id:
     | '__root__'
     | '/'
@@ -130,6 +212,13 @@ export interface FileRouteTypes {
     | '/_authenticated/onboarding'
     | '/verify/$code'
     | '/verify/'
+    | '/_authenticated/business/certificates'
+    | '/_authenticated/business/dashboard'
+    | '/_authenticated/business/instruments'
+    | '/_authenticated/business/notifications'
+    | '/_authenticated/business/profile'
+    | '/_authenticated/business/requests'
+    | '/_authenticated/business/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -206,18 +295,96 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof VerifyCodeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/business/': {
+      id: '/_authenticated/business/'
+      path: '/'
+      fullPath: '/business/'
+      preLoaderRoute: typeof AuthenticatedBusinessIndexRouteImport
+      parentRoute: typeof AuthenticatedBusinessRouteRoute
+    }
+    '/_authenticated/business/certificates': {
+      id: '/_authenticated/business/certificates'
+      path: '/certificates'
+      fullPath: '/business/certificates'
+      preLoaderRoute: typeof AuthenticatedBusinessCertificatesRouteImport
+      parentRoute: typeof AuthenticatedBusinessRouteRoute
+    }
+    '/_authenticated/business/dashboard': {
+      id: '/_authenticated/business/dashboard'
+      path: '/dashboard'
+      fullPath: '/business/dashboard'
+      preLoaderRoute: typeof AuthenticatedBusinessDashboardRouteImport
+      parentRoute: typeof AuthenticatedBusinessRouteRoute
+    }
+    '/_authenticated/business/instruments': {
+      id: '/_authenticated/business/instruments'
+      path: '/instruments'
+      fullPath: '/business/instruments'
+      preLoaderRoute: typeof AuthenticatedBusinessInstrumentsRouteImport
+      parentRoute: typeof AuthenticatedBusinessRouteRoute
+    }
+    '/_authenticated/business/notifications': {
+      id: '/_authenticated/business/notifications'
+      path: '/notifications'
+      fullPath: '/business/notifications'
+      preLoaderRoute: typeof AuthenticatedBusinessNotificationsRouteImport
+      parentRoute: typeof AuthenticatedBusinessRouteRoute
+    }
+    '/_authenticated/business/profile': {
+      id: '/_authenticated/business/profile'
+      path: '/profile'
+      fullPath: '/business/profile'
+      preLoaderRoute: typeof AuthenticatedBusinessProfileRouteImport
+      parentRoute: typeof AuthenticatedBusinessRouteRoute
+    }
+    '/_authenticated/business/requests': {
+      id: '/_authenticated/business/requests'
+      path: '/requests'
+      fullPath: '/business/requests'
+      preLoaderRoute: typeof AuthenticatedBusinessRequestsRouteImport
+      parentRoute: typeof AuthenticatedBusinessRouteRoute
+    }
   }
 }
 
+interface AuthenticatedBusinessRouteRouteChildren {
+  AuthenticatedBusinessCertificatesRoute: typeof AuthenticatedBusinessCertificatesRoute
+  AuthenticatedBusinessDashboardRoute: typeof AuthenticatedBusinessDashboardRoute
+  AuthenticatedBusinessInstrumentsRoute: typeof AuthenticatedBusinessInstrumentsRoute
+  AuthenticatedBusinessNotificationsRoute: typeof AuthenticatedBusinessNotificationsRoute
+  AuthenticatedBusinessProfileRoute: typeof AuthenticatedBusinessProfileRoute
+  AuthenticatedBusinessRequestsRoute: typeof AuthenticatedBusinessRequestsRoute
+  AuthenticatedBusinessIndexRoute: typeof AuthenticatedBusinessIndexRoute
+}
+
+const AuthenticatedBusinessRouteRouteChildren: AuthenticatedBusinessRouteRouteChildren =
+  {
+    AuthenticatedBusinessCertificatesRoute:
+      AuthenticatedBusinessCertificatesRoute,
+    AuthenticatedBusinessDashboardRoute: AuthenticatedBusinessDashboardRoute,
+    AuthenticatedBusinessInstrumentsRoute:
+      AuthenticatedBusinessInstrumentsRoute,
+    AuthenticatedBusinessNotificationsRoute:
+      AuthenticatedBusinessNotificationsRoute,
+    AuthenticatedBusinessProfileRoute: AuthenticatedBusinessProfileRoute,
+    AuthenticatedBusinessRequestsRoute: AuthenticatedBusinessRequestsRoute,
+    AuthenticatedBusinessIndexRoute: AuthenticatedBusinessIndexRoute,
+  }
+
+const AuthenticatedBusinessRouteRouteWithChildren =
+  AuthenticatedBusinessRouteRoute._addFileChildren(
+    AuthenticatedBusinessRouteRouteChildren,
+  )
+
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAuthorityRouteRoute: typeof AuthenticatedAuthorityRouteRoute
-  AuthenticatedBusinessRouteRoute: typeof AuthenticatedBusinessRouteRoute
+  AuthenticatedBusinessRouteRoute: typeof AuthenticatedBusinessRouteRouteWithChildren
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAuthorityRouteRoute: AuthenticatedAuthorityRouteRoute,
-  AuthenticatedBusinessRouteRoute: AuthenticatedBusinessRouteRoute,
+  AuthenticatedBusinessRouteRoute: AuthenticatedBusinessRouteRouteWithChildren,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
 }
 
