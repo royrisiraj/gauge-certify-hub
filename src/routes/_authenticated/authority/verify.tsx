@@ -1,6 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useId, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { QRCodeSVG } from "qrcode.react";
 import {
   Loader2,
   AlertTriangle,
@@ -20,8 +21,13 @@ import {
   Building2,
   FileText,
   Award,
+  Printer,
+  Download,
+  ExternalLink,
+  Eye,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
 import { useAccount } from "@/lib/emaap/session";
 import { PageHeader } from "@/components/emaap/PageHeader";
 import { StatusBadge } from "@/components/emaap/StatusBadge";
@@ -544,6 +550,32 @@ function InspectionView({
     },
   });
 
+  // ── Load existing certificate or result for this decision ──
+  const { data: existingCertificate, refetch: refetchCertificate } = useQuery({
+    queryKey: ["emaap", "certificate-by-decision", existingDecision?.id],
+    queryFn: async () => {
+      if (!existingDecision) return null;
+      const { data, error } = await supabase
+        .from("certificates")
+        .select("id, certificate_number, verification_code, status, valid_from, valid_until, issued_at, conditions, status_reason")
+        .eq("decision_id", existingDecision.id)
+        .maybeSingle();
+      if (error) throw error;
+      return data as {
+        id: string;
+        certificate_number: string;
+        verification_code: string;
+        status: string;
+        valid_from: string;
+        valid_until: string | null;
+        issued_at: string;
+        conditions: string | null;
+        status_reason: string | null;
+      } | null;
+    },
+    enabled: !!existingDecision,
+  });
+
   // ── Create Inspection mutation ──
   const createInspectionMutation = useMutation({
     mutationFn: async () => {
@@ -739,6 +771,7 @@ function InspectionView({
       setDecisionError(null);
       refetchInspection();
       refetchDecision();
+      refetchCertificate();
       queryClient.invalidateQueries({ queryKey: ["emaap", "authority"] });
     },
     onError: (err: Error) => {
@@ -759,11 +792,11 @@ function InspectionView({
     onSuccess: () => {
       setCertSuccess(true);
       setCertError(null);
+      refetchCertificate();
       queryClient.invalidateQueries({ queryKey: ["emaap", "authority"] });
       setTimeout(() => {
         setShowCertDialog(false);
         setCertSuccess(false);
-        onBack();
       }, 2000);
     },
     onError: (err: Error) => {
@@ -781,9 +814,7 @@ function InspectionView({
 
   const canSubmitInspection = inspection?.status === "in_progress" && measurements.length > 0;
   const canRecordDecision = inspection?.status === "submitted" && !existingDecision;
-  const canIssueCertificate =
-    existingDecision &&
-    (existingDecision.decision === "verified" || existingDecision.decision === "verified_with_conditions");
+  const canIssueCertificate = existingDecision && !existingCertificate;
 
   // Derive suggested decision from measurement results
   const suggestedDecision: "verified" | "verified_with_conditions" | "failed" =
@@ -1272,42 +1303,190 @@ function InspectionView({
           </div>
 
           {existingDecision ? (
-            <div className="space-y-3">
-              <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-4 space-y-2">
-                <div className="flex items-center gap-3">
-                  <DecisionIcon decision={existingDecision.decision} />
-                  <div>
-                    <p className="font-bold text-slate-900 capitalize">
-                      {existingDecision.decision.replace(/_/g, " ")}
-                    </p>
-                    <p className="text-[12px] text-slate-500">
-                      Decided {formatDateTime(existingDecision.decided_at)}
-                    </p>
+            <div className="space-y-4">
+              {/* Decision Outcome Summary */}
+              <div
+                className={cn(
+                  "rounded-xl border p-4 space-y-2",
+                  existingDecision.decision === "failed"
+                    ? "border-red-200 bg-red-50/60"
+                    : "border-emerald-200 bg-emerald-50/60",
+                )}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <DecisionIcon decision={existingDecision.decision} />
+                    <div>
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
+                        Official Decision
+                      </span>
+                      <p className="font-bold text-slate-900 text-base">
+                        {existingDecision.decision === "failed"
+                          ? "NOT VERIFIED — FAIL"
+                          : existingDecision.decision === "verified_with_conditions"
+                            ? "VERIFIED WITH CONDITIONS"
+                            : "VERIFIED — PASS"}
+                      </p>
+                      <p className="text-[12px] text-slate-500">
+                        Decided {formatDateTime(existingDecision.decided_at)}
+                      </p>
+                    </div>
                   </div>
+                  <span
+                    className={cn(
+                      "px-2.5 py-1 rounded text-xs font-bold uppercase border",
+                      existingDecision.decision === "failed"
+                        ? "bg-red-100 text-red-800 border-red-300"
+                        : "bg-emerald-100 text-emerald-800 border-emerald-300",
+                    )}
+                  >
+                    {existingDecision.decision === "failed" ? "FAIL / NOT VERIFIED" : "PASS / VERIFIED"}
+                  </span>
                 </div>
+
                 {existingDecision.conditions && (
-                  <div className="text-[13px]">
+                  <div className="text-[13px] pt-1">
                     <span className="text-slate-500 text-[11px] font-semibold block">Conditions</span>
-                    <p className="text-slate-700">{existingDecision.conditions}</p>
+                    <p className="text-slate-700 bg-white/70 p-2 rounded border border-slate-200">
+                      {existingDecision.conditions}
+                    </p>
                   </div>
                 )}
                 {existingDecision.override_reason && (
-                  <div className="text-[13px]">
-                    <span className="text-slate-500 text-[11px] font-semibold block">Override Reason</span>
-                    <p className="text-slate-700">{existingDecision.override_reason}</p>
+                  <div className="text-[13px] pt-1">
+                    <span className="text-slate-500 text-[11px] font-semibold block">
+                      {existingDecision.decision === "failed" ? "Failure Reason / Notes" : "Override Reason"}
+                    </span>
+                    <p className="text-slate-700 bg-white/70 p-2 rounded border border-slate-200">
+                      {existingDecision.override_reason}
+                    </p>
                   </div>
                 )}
               </div>
 
-              {/* Issue Certificate Button */}
-              {canIssueCertificate && (
-                <Button
-                  onClick={() => setShowCertDialog(true)}
-                  className="gap-1.5 bg-[#138808] hover:bg-[#138808]/90 text-white font-medium"
-                >
-                  <Award className="size-4" />
-                  Issue Certificate
-                </Button>
+              {/* Generated Official Certificate / Result Card */}
+              {existingCertificate ? (
+                <div className="rounded-xl border-2 border-slate-200 bg-slate-50/50 p-5 space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-3">
+                    <div>
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                        {existingDecision.decision === "failed"
+                          ? "Official Verification Result"
+                          : "Official Verification Certificate"}
+                      </span>
+                      <h3 className="font-mono text-xl font-bold text-slate-900">
+                        {existingCertificate.certificate_number}
+                      </h3>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={cn(
+                          "px-2.5 py-1 rounded-md text-xs font-bold uppercase border",
+                          existingDecision.decision === "failed"
+                            ? "bg-red-100 text-red-800 border-red-200"
+                            : "bg-emerald-100 text-emerald-800 border-emerald-200",
+                        )}
+                      >
+                        {existingDecision.decision === "failed" ? "NOT VERIFIED — FAIL" : "VERIFIED — PASS"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                    <div className="md:col-span-2 space-y-2 text-[13px]">
+                      <div className="flex justify-between py-1 border-b border-slate-200/60">
+                        <span className="text-slate-500">Public Verification Code:</span>
+                        <span className="font-mono font-bold text-slate-800">
+                          {existingCertificate.verification_code}
+                        </span>
+                      </div>
+                      <div className="flex justify-between py-1 border-b border-slate-200/60">
+                        <span className="text-slate-500">Verification Date:</span>
+                        <span className="font-medium text-slate-800">
+                          {formatDate(existingCertificate.issued_at || existingCertificate.valid_from)}
+                        </span>
+                      </div>
+                      {/* Valid until ONLY for PASS certificates */}
+                      {existingDecision.decision !== "failed" && existingCertificate.valid_until && (
+                        <div className="flex justify-between py-1 border-b border-slate-200/60">
+                          <span className="text-slate-500">Valid Until:</span>
+                          <span className="font-medium text-slate-800">
+                            {formatDate(existingCertificate.valid_until)}
+                          </span>
+                        </div>
+                      )}
+                      {existingDecision.decision === "failed" && (
+                        <div className="py-1">
+                          <span className="text-slate-500 block text-[11px]">Assessment Summary:</span>
+                          <span className="text-red-700 font-medium">
+                            {existingCertificate.status_reason ||
+                              existingDecision.override_reason ||
+                              "Instrument does not meet statutory tolerance standards"}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* QR Code */}
+                    <div className="flex flex-col items-center justify-center p-3 bg-white rounded-lg border border-slate-200 text-center">
+                      <QRCodeSVG
+                        value={
+                          typeof window !== "undefined"
+                            ? `${window.location.origin}/verify/${existingCertificate.verification_code}`
+                            : `https://emaap.gov.in/verify/${existingCertificate.verification_code}`
+                        }
+                        size={110}
+                        level="M"
+                      />
+                      <p className="mt-1.5 font-mono text-[10px] text-slate-500">
+                        {existingCertificate.verification_code}
+                      </p>
+                      <p className="text-[10px] text-slate-400">Public QR Verification</p>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-200">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.print()}
+                      className="gap-1.5 text-xs bg-white"
+                    >
+                      <Printer className="size-3.5" />
+                      Print
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.print()}
+                      className="gap-1.5 text-xs bg-white"
+                    >
+                      <Download className="size-3.5" />
+                      Download / Save PDF
+                    </Button>
+                    <Button asChild size="sm" className="gap-1.5 text-xs bg-[#000080] text-white">
+                      <Link
+                        to="/verify/$code"
+                        params={{ code: existingCertificate.verification_code }}
+                        target="_blank"
+                      >
+                        <ExternalLink className="size-3.5" />
+                        Verify Public Page
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                canIssueCertificate && (
+                  <Button
+                    onClick={() => setShowCertDialog(true)}
+                    className="gap-1.5 bg-[#138808] hover:bg-[#138808]/90 text-white font-medium"
+                  >
+                    <Award className="size-4" />
+                    {existingDecision.decision === "failed" ? "Generate Public Result" : "Issue Certificate"}
+                  </Button>
+                )
               )}
             </div>
           ) : canRecordDecision ? (

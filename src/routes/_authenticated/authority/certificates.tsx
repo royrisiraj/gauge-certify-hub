@@ -16,8 +16,10 @@ import {
   Eye,
   FileCheck2,
   AlertOctagon,
+  XCircle,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
+import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAccount } from "@/lib/emaap/session";
 import { PageHeader } from "@/components/emaap/PageHeader";
@@ -44,7 +46,7 @@ import {
 import { formatDate } from "@/lib/emaap/format";
 import type { Database } from "@/integrations/supabase/types";
 
-type CertStatus = Database["public"]["Enums"]["cert_status"];
+type CertStatus = Database["public"]["Enums"]["cert_status"] | "failed";
 
 type CertificateRow = {
   id: string;
@@ -53,7 +55,7 @@ type CertificateRow = {
   status: CertStatus;
   status_reason: string | null;
   valid_from: string;
-  valid_until: string;
+  valid_until: string | null;
   issued_at: string;
   conditions: string | null;
   instrument_id: string;
@@ -169,7 +171,7 @@ function AuthorityCertificatesPage() {
 
       const { error } = await supabase.rpc("set_certificate_status", {
         p_certificate_id: manageCert.id,
-        p_status: newStatus,
+        p_status: newStatus as Database["public"]["Enums"]["cert_status"],
         p_reason: statusReason.trim(),
       });
       if (error) throw error;
@@ -236,16 +238,22 @@ function AuthorityCertificatesPage() {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        <div className="flex gap-1.5">
-          {["all", "active", "suspended", "revoked"].map((s) => (
+        <div className="flex gap-1.5 flex-wrap">
+          {[
+            { id: "all", label: "All" },
+            { id: "active", label: "Pass / Verified" },
+            { id: "failed", label: "Fail / Not Verified" },
+            { id: "suspended", label: "Suspended" },
+            { id: "revoked", label: "Revoked" },
+          ].map((item) => (
             <Button
-              key={s}
+              key={item.id}
               size="sm"
-              variant={statusFilter === s ? "default" : "outline"}
-              onClick={() => setStatusFilter(s)}
-              className="text-xs capitalize"
+              variant={statusFilter === item.id ? "default" : "outline"}
+              onClick={() => setStatusFilter(item.id)}
+              className="text-xs"
             >
-              {s}
+              {item.label}
             </Button>
           ))}
         </div>
@@ -259,151 +267,221 @@ function AuthorityCertificatesPage() {
       ) : filteredCerts.length === 0 ? (
         <EmptyState
           icon={Award}
-          title="No certificates found"
+          title="No certificates or results found"
           description={
             searchQuery || statusFilter !== "all"
-              ? "No certificates match your search filters."
-              : "No legal metrology certificates have been issued yet."
+              ? "No certificates or results match your search filters."
+              : "No legal metrology certificates or results have been issued yet."
           }
         />
       ) : (
         <div className="surface-card divide-y divide-slate-100">
-          {filteredCerts.map((cert) => (
-            <div
-              key={cert.id}
-              className="flex flex-wrap items-center justify-between gap-4 px-5 py-4"
-            >
-              <div className="min-w-0 flex-1 space-y-1">
-                <div className="flex items-center gap-2">
-                  <Award className="size-4 text-emerald-600" />
-                  <p className="truncate text-sm font-semibold text-slate-900">
-                    {cert.certificate_number}
+          {filteredCerts.map((cert) => {
+            const isFailed = cert.status === "failed" || cert.certificate_number.startsWith("VR-");
+            return (
+              <div
+                key={cert.id}
+                className="flex flex-wrap items-center justify-between gap-4 px-5 py-4"
+              >
+                <div className="min-w-0 flex-1 space-y-1">
+                  <div className="flex items-center gap-2">
+                    {isFailed ? (
+                      <XCircle className="size-4 text-red-600 shrink-0" />
+                    ) : (
+                      <Award className="size-4 text-emerald-600 shrink-0" />
+                    )}
+                    <p className="truncate text-sm font-semibold text-slate-900 font-mono">
+                      {cert.certificate_number}
+                    </p>
+                    <span
+                      className={cn(
+                        "rounded px-2 py-0.5 text-[11px] font-bold uppercase border",
+                        isFailed
+                          ? "bg-red-100 text-red-800 border-red-200"
+                          : "bg-emerald-100 text-emerald-800 border-emerald-200",
+                      )}
+                    >
+                      {isFailed ? "NOT VERIFIED — FAIL" : "VERIFIED — PASS"}
+                    </span>
+                    {cert.status !== "active" && cert.status !== "failed" && (
+                      <StatusBadge status={cert.status} size="sm" />
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-500">
+                    {cert.instruments?.businesses?.name ?? "Business"}
+                    {cert.instruments?.businesses?.city ? `, ${cert.instruments.businesses.city}` : ""} ·{" "}
+                    {cert.instruments?.category ?? "Instrument"} (SN: {cert.instruments?.serial_number ?? "—"})
                   </p>
-                  <StatusBadge status={cert.status} size="sm" />
+                  <p className="text-[11px] text-slate-400">
+                    {isFailed ? (
+                      <>
+                        Decision Date: {formatDate(cert.issued_at || cert.valid_from)} · Status:{" "}
+                        <span className="text-red-600 font-semibold">NOT VERIFIED</span> · Code:{" "}
+                        <span className="font-mono">{cert.verification_code}</span>
+                      </>
+                    ) : (
+                      <>
+                        Valid: {formatDate(cert.valid_from)} to {formatDate(cert.valid_until)} · Code:{" "}
+                        <span className="font-mono">{cert.verification_code}</span>
+                      </>
+                    )}
+                  </p>
                 </div>
-                <p className="text-xs text-slate-500">
-                  {cert.instruments?.businesses?.name ?? "Business"}
-                  {cert.instruments?.businesses?.city ? `, ${cert.instruments.businesses.city}` : ""} ·{" "}
-                  {cert.instruments?.category ?? "Instrument"} (SN: {cert.instruments?.serial_number ?? "—"})
-                </p>
-                <p className="text-[11px] text-slate-400">
-                  Valid: {formatDate(cert.valid_from)} to {formatDate(cert.valid_until)} · Code:{" "}
-                  <span className="font-mono">{cert.verification_code}</span>
-                </p>
-              </div>
 
-              <div className="flex items-center gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="gap-1 text-xs"
-                  onClick={() => setSelectedCert(cert)}
-                >
-                  <Eye className="size-3.5" />
-                  View
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="gap-1 text-xs text-slate-600"
-                  onClick={() => {
-                    setManageCert(cert);
-                    setNewStatus(cert.status);
-                    setStatusReason(cert.status_reason || "");
-                    setStatusError(null);
-                  }}
-                >
-                  Manage Status
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1 text-xs"
+                    onClick={() => setSelectedCert(cert)}
+                  >
+                    <Eye className="size-3.5" />
+                    View {isFailed ? "Result" : "Certificate"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="gap-1 text-xs text-slate-600"
+                    onClick={() => {
+                      setManageCert(cert);
+                      setNewStatus(cert.status);
+                      setStatusReason(cert.status_reason || "");
+                      setStatusError(null);
+                    }}
+                  >
+                    Manage Status
+                  </Button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
-      {/* ── View Certificate Dialog ── */}
+      {/* ── View Certificate / Result Dialog ── */}
       <Dialog open={!!selectedCert} onOpenChange={(open) => !open && setSelectedCert(null)}>
         <DialogContent className="sm:max-w-md">
-          {selectedCert && (
-            <>
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2 text-slate-900">
-                  <Award className="size-5 text-emerald-600" />
-                  {selectedCert.certificate_number}
-                </DialogTitle>
-                <DialogDescription>
-                  Official Legal Metrology Verification Certificate
-                </DialogDescription>
-              </DialogHeader>
+          {selectedCert && (() => {
+            const isFailed = selectedCert.status === "failed" || selectedCert.certificate_number.startsWith("VR-");
+            return (
+              <>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2 text-slate-900 font-mono">
+                    {isFailed ? (
+                      <XCircle className="size-5 text-red-600" />
+                    ) : (
+                      <Award className="size-5 text-emerald-600" />
+                    )}
+                    {selectedCert.certificate_number}
+                  </DialogTitle>
+                  <DialogDescription>
+                    {isFailed
+                      ? "Official Legal Metrology Verification Result (FAIL)"
+                      : "Official Legal Metrology Verification Certificate (PASS)"}
+                  </DialogDescription>
+                </DialogHeader>
 
-              <div className="my-2 flex flex-col items-center justify-center rounded-lg bg-slate-50 p-4 border border-slate-200">
-                <QRCodeSVG
-                  value={getVerificationUrl(selectedCert.verification_code)}
-                  size={140}
-                  level="M"
-                />
-                <p className="mt-2 font-mono text-xs font-semibold tracking-wider text-slate-700">
-                  {selectedCert.verification_code}
-                </p>
-                <p className="text-[11px] text-slate-400">Scan to verify authenticity publicly</p>
-              </div>
+                <div className="my-2 flex flex-col items-center justify-center rounded-lg bg-slate-50 p-4 border border-slate-200">
+                  <QRCodeSVG
+                    value={getVerificationUrl(selectedCert.verification_code)}
+                    size={140}
+                    level="M"
+                  />
+                  <p className="mt-2 font-mono text-xs font-semibold tracking-wider text-slate-700">
+                    {selectedCert.verification_code}
+                  </p>
+                  <p className="text-[11px] text-slate-400">Scan to verify authenticity publicly</p>
+                </div>
 
-              <div className="space-y-2 text-xs text-slate-600">
-                <div className="flex justify-between py-1 border-b border-slate-100">
-                  <span className="text-slate-500">Business:</span>
-                  <span className="font-medium text-slate-800">
-                    {selectedCert.instruments?.businesses?.name ?? "—"}
-                  </span>
-                </div>
-                <div className="flex justify-between py-1 border-b border-slate-100">
-                  <span className="text-slate-500">Instrument:</span>
-                  <span className="font-medium text-slate-800">
-                    {selectedCert.instruments?.category} (SN: {selectedCert.instruments?.serial_number})
-                  </span>
-                </div>
-                <div className="flex justify-between py-1 border-b border-slate-100">
-                  <span className="text-slate-500">Validity:</span>
-                  <span className="font-medium text-slate-800">
-                    {formatDate(selectedCert.valid_from)} — {formatDate(selectedCert.valid_until)}
-                  </span>
-                </div>
-                <div className="flex justify-between py-1 border-b border-slate-100">
-                  <span className="text-slate-500">Status:</span>
-                  <StatusBadge status={selectedCert.status} size="sm" />
-                </div>
-                {selectedCert.conditions && (
-                  <div className="py-1">
-                    <span className="text-slate-500">Conditions:</span>
-                    <p className="mt-0.5 text-slate-700 bg-amber-50 p-2 rounded border border-amber-200">
-                      {selectedCert.conditions}
-                    </p>
+                <div className="space-y-2 text-xs text-slate-600">
+                  <div className="flex justify-between py-1 border-b border-slate-100">
+                    <span className="text-slate-500">Business:</span>
+                    <span className="font-medium text-slate-800">
+                      {selectedCert.instruments?.businesses?.name ?? "—"}
+                    </span>
                   </div>
-                )}
-              </div>
+                  <div className="flex justify-between py-1 border-b border-slate-100">
+                    <span className="text-slate-500">Instrument:</span>
+                    <span className="font-medium text-slate-800">
+                      {selectedCert.instruments?.category} (SN: {selectedCert.instruments?.serial_number})
+                    </span>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-slate-100">
+                    <span className="text-slate-500">Outcome:</span>
+                    <span
+                      className={cn(
+                        "font-bold uppercase px-2 py-0.5 rounded text-[11px]",
+                        isFailed ? "bg-red-100 text-red-800" : "bg-emerald-100 text-emerald-800",
+                      )}
+                    >
+                      {isFailed ? "NOT VERIFIED — FAIL" : "VERIFIED — PASS"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-slate-100">
+                    <span className="text-slate-500">Verification Date:</span>
+                    <span className="font-medium text-slate-800">
+                      {formatDate(selectedCert.issued_at || selectedCert.valid_from)}
+                    </span>
+                  </div>
+                  {!isFailed && selectedCert.valid_until && (
+                    <div className="flex justify-between py-1 border-b border-slate-100">
+                      <span className="text-slate-500">Valid Until:</span>
+                      <span className="font-medium text-slate-800">
+                        {formatDate(selectedCert.valid_until)}
+                      </span>
+                    </div>
+                  )}
+                  {isFailed && (
+                    <div className="py-1">
+                      <span className="text-slate-500">Assessment Summary:</span>
+                      <p className="mt-0.5 text-red-700 bg-red-50 p-2 rounded border border-red-200">
+                        {selectedCert.status_reason || "Instrument does not meet statutory tolerance standards"}
+                      </p>
+                    </div>
+                  )}
+                  {selectedCert.conditions && (
+                    <div className="py-1">
+                      <span className="text-slate-500">Conditions:</span>
+                      <p className="mt-0.5 text-slate-700 bg-amber-50 p-2 rounded border border-amber-200">
+                        {selectedCert.conditions}
+                      </p>
+                    </div>
+                  )}
+                </div>
 
-              <DialogFooter className="gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => window.print()}
-                  className="gap-1 text-xs"
-                >
-                  <Printer className="size-3.5" />
-                  Print
-                </Button>
-                <Link
-                  to="/verify/$code"
-                  params={{ code: selectedCert.verification_code }}
-                  target="_blank"
-                >
-                  <Button size="sm" className="gap-1 text-xs bg-[#000080] text-white">
-                    <ExternalLink className="size-3.5" />
-                    Public Verification Link
+                <DialogFooter className="gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.print()}
+                    className="gap-1 text-xs"
+                  >
+                    <Printer className="size-3.5" />
+                    Print
                   </Button>
-                </Link>
-              </DialogFooter>
-            </>
-          )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.print()}
+                    className="gap-1 text-xs"
+                  >
+                    <Printer className="size-3.5" />
+                    Download / Save PDF
+                  </Button>
+                  <Link
+                    to="/verify/$code"
+                    params={{ code: selectedCert.verification_code }}
+                    target="_blank"
+                  >
+                    <Button size="sm" className="gap-1 text-xs bg-[#000080] text-white">
+                      <ExternalLink className="size-3.5" />
+                      Public Verification Link
+                    </Button>
+                  </Link>
+                </DialogFooter>
+              </>
+            );
+          })()}
         </DialogContent>
       </Dialog>
 

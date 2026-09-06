@@ -17,6 +17,7 @@ import {
   FileCheck2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
 import { useAccount } from "@/lib/emaap/session";
 import { PageHeader } from "@/components/emaap/PageHeader";
 import { StatusBadge } from "@/components/emaap/StatusBadge";
@@ -47,7 +48,7 @@ type CertificateRow = {
   status: string;
   status_reason: string | null;
   valid_from: string;
-  valid_until: string;
+  valid_until: string | null;
   issued_at: string;
   conditions: string | null;
   instrument_id: string;
@@ -152,7 +153,14 @@ function BusinessCertificatesPage() {
           cert.instruments.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
           cert.instruments.manufacturer.toLowerCase().includes(searchQuery.toLowerCase())));
 
-    const matchesStatus = statusFilter === "all" || cert.status === statusFilter;
+    const isCertFailed = cert.status === "failed" || cert.certificate_number.startsWith("VR-");
+    const matchesStatus =
+      statusFilter === "all" ||
+      (statusFilter === "failed"
+        ? isCertFailed
+        : statusFilter === "active"
+          ? !isCertFailed && cert.status === "active"
+          : cert.status === statusFilter);
 
     return matchesSearch && matchesStatus;
   });
@@ -214,8 +222,9 @@ function BusinessCertificatesPage() {
               <SelectValue placeholder="All Statuses" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="active">Active / Valid</SelectItem>
+              <SelectItem value="all">All Records</SelectItem>
+              <SelectItem value="active">Pass / Verified</SelectItem>
+              <SelectItem value="failed">Fail / Not Verified</SelectItem>
               <SelectItem value="expired">Expired</SelectItem>
               <SelectItem value="suspended">Suspended</SelectItem>
               <SelectItem value="revoked">Revoked</SelectItem>
@@ -228,8 +237,8 @@ function BusinessCertificatesPage() {
       {certificates.length === 0 ? (
         <EmptyState
           icon={Award}
-          title="No certificates issued yet"
-          description="Certificates are generated and digitally signed once an authorized Legal Metrology Officer approves your instrument's verification."
+          title="No certificates or results issued yet"
+          description="Certificates and verification results are generated once an authorized Legal Metrology Officer completes the verification."
           action={
             <Button asChild className="bg-[#000080] hover:bg-[#000080]/90 text-white shadow-sm">
               <Link to="/business/requests">View Verification Requests</Link>
@@ -238,7 +247,7 @@ function BusinessCertificatesPage() {
         />
       ) : filteredCerts.length === 0 ? (
         <div className="rounded-xl border border-slate-200 bg-white p-8 text-center text-slate-600">
-          <p className="text-[15px] font-medium">No certificates match your search criteria.</p>
+          <p className="text-[15px] font-medium">No certificates or results match your search criteria.</p>
           <Button
             variant="outline"
             size="sm"
@@ -258,287 +267,348 @@ function BusinessCertificatesPage() {
             <table className="w-full text-left text-[14px]">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50/70 text-[12px] font-semibold uppercase tracking-wider text-slate-600">
-                  <th className="py-3 px-4">Certificate No.</th>
+                  <th className="py-3 px-4">Certificate / Result No.</th>
                   <th className="py-3 px-4">Instrument</th>
-                  <th className="py-3 px-4">Issued Date</th>
-                  <th className="py-3 px-4">Validity Period</th>
+                  <th className="py-3 px-4">Verification Date</th>
+                  <th className="py-3 px-4">Validity / Outcome</th>
                   <th className="py-3 px-4">Issuing Authority</th>
                   <th className="py-3 px-4">Status</th>
                   <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredCerts.map((cert) => (
-                  <tr key={cert.id} className="hover:bg-slate-50/60 transition-colors">
-                    <td className="py-3.5 px-4 font-mono font-bold text-[#000080] text-[13px]">
-                      {cert.certificate_number}
-                    </td>
-                    <td className="py-3.5 px-4">
-                      {cert.instruments ? (
-                        <div>
-                          <div className="font-semibold text-slate-900">
-                            {cert.instruments.category}
-                          </div>
-                          <div className="font-mono text-[12px] text-slate-500">
-                            SN: {cert.instruments.serial_number} ({cert.instruments.public_code})
-                          </div>
-                        </div>
-                      ) : (
-                        <span className="text-slate-400 italic">
-                          Instrument ID: {cert.instrument_id.slice(0, 8)}
+                {filteredCerts.map((cert) => {
+                  const isFailed = cert.status === "failed" || cert.certificate_number.startsWith("VR-");
+                  return (
+                    <tr key={cert.id} className="hover:bg-slate-50/60 transition-colors">
+                      <td className="py-3.5 px-4 font-mono font-bold text-[#000080] text-[13px]">
+                        <div>{cert.certificate_number}</div>
+                        <span
+                          className={cn(
+                            "inline-block rounded px-1.5 py-0.2 text-[10px] font-bold uppercase mt-0.5 border",
+                            isFailed
+                              ? "bg-red-50 text-red-700 border-red-200"
+                              : "bg-emerald-50 text-emerald-700 border-emerald-200",
+                          )}
+                        >
+                          {isFailed ? "NOT VERIFIED — FAIL" : "VERIFIED — PASS"}
                         </span>
-                      )}
-                    </td>
-                    <td className="py-3.5 px-4 text-slate-600 text-[13px]">
-                      {new Date(cert.issued_at).toLocaleDateString()}
-                    </td>
-                    <td className="py-3.5 px-4 text-slate-700 text-[13px]">
-                      <div className="font-medium">
-                        Until {new Date(cert.valid_until).toLocaleDateString()}
-                      </div>
-                      <div className="text-[11px] text-slate-400">
-                        From {new Date(cert.valid_from).toLocaleDateString()}
-                      </div>
-                    </td>
-                    <td className="py-3.5 px-4 text-slate-600 text-[13px]">
-                      {cert.verification_authorities?.name || "Legal Metrology Dept"}
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <StatusBadge status={cert.status} size="sm" />
-                    </td>
-                    <td className="py-3.5 px-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setSelectedCert(cert)}
-                          className="h-8 text-[12px]"
-                        >
-                          <Eye className="size-3.5 mr-1" aria-hidden="true" />
-                          View
-                        </Button>
-                        <Button
-                          asChild
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 px-2 text-[#000080]"
-                          title="Public Verification Link"
-                        >
-                          <Link to="/verify/$code" params={{ code: cert.verification_code }}>
-                            <ExternalLink className="size-3.5" aria-hidden="true" />
-                          </Link>
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="py-3.5 px-4">
+                        {cert.instruments ? (
+                          <div>
+                            <div className="font-semibold text-slate-900">
+                              {cert.instruments.category}
+                            </div>
+                            <div className="font-mono text-[12px] text-slate-500">
+                              SN: {cert.instruments.serial_number} ({cert.instruments.public_code})
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-slate-400 italic">
+                            Instrument ID: {cert.instrument_id.slice(0, 8)}
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3.5 px-4 text-slate-600 text-[13px]">
+                        {new Date(cert.issued_at || cert.valid_from).toLocaleDateString()}
+                      </td>
+                      <td className="py-3.5 px-4 text-slate-700 text-[13px]">
+                        {isFailed ? (
+                          <div>
+                            <div className="font-semibold text-red-600">NOT VERIFIED</div>
+                            <div className="text-[11px] text-slate-400">Failed Tolerance Assessment</div>
+                          </div>
+                        ) : (
+                          <div>
+                            <div className="font-medium">
+                              {cert.valid_until ? `Until ${new Date(cert.valid_until).toLocaleDateString()}` : "—"}
+                            </div>
+                            <div className="text-[11px] text-slate-400">
+                              From {new Date(cert.valid_from).toLocaleDateString()}
+                            </div>
+                          </div>
+                        )}
+                      </td>
+                      <td className="py-3.5 px-4 text-slate-600 text-[13px]">
+                        {cert.verification_authorities?.name || "Legal Metrology Dept"}
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <StatusBadge status={isFailed ? "failed" : cert.status} size="sm" />
+                      </td>
+                      <td className="py-3.5 px-4 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setSelectedCert(cert)}
+                            className="h-8 text-[12px]"
+                          >
+                            <Eye className="size-3.5 mr-1" aria-hidden="true" />
+                            View
+                          </Button>
+                          <Button
+                            asChild
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 px-2 text-[#000080]"
+                            title="Public Verification Link"
+                          >
+                            <Link to="/verify/$code" params={{ code: cert.verification_code }}>
+                              <ExternalLink className="size-3.5" aria-hidden="true" />
+                            </Link>
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
 
           {/* Mobile Card List */}
           <div className="block md:hidden divide-y divide-slate-100">
-            {filteredCerts.map((cert) => (
-              <div key={cert.id} className="p-4 space-y-3">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <span className="font-mono text-[13px] font-bold text-[#000080]">
-                      {cert.certificate_number}
-                    </span>
-                    <h3 className="font-bold text-slate-900 text-[15px]">
-                      {cert.instruments?.category || "Instrument"}
-                    </h3>
-                    <p className="font-mono text-[12px] text-slate-500">
-                      SN: {cert.instruments?.serial_number || "—"}
-                    </p>
+            {filteredCerts.map((cert) => {
+              const isFailed = cert.status === "failed" || cert.certificate_number.startsWith("VR-");
+              return (
+                <div key={cert.id} className="p-4 space-y-3">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <span className="font-mono text-[13px] font-bold text-[#000080]">
+                        {cert.certificate_number}
+                      </span>
+                      <h3 className="font-bold text-slate-900 text-[15px]">
+                        {cert.instruments?.category || "Instrument"}
+                      </h3>
+                      <p className="font-mono text-[12px] text-slate-500">
+                        SN: {cert.instruments?.serial_number || "—"}
+                      </p>
+                    </div>
+                    <StatusBadge status={isFailed ? "failed" : cert.status} size="sm" />
                   </div>
-                  <StatusBadge status={cert.status} size="sm" />
-                </div>
 
-                <div className="text-[12px] text-slate-600 bg-slate-50 p-2.5 rounded-lg space-y-1">
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Valid Until:</span>
-                    <span className="font-semibold text-slate-800">
-                      {new Date(cert.valid_until).toLocaleDateString()}
-                    </span>
+                  <div className="text-[12px] text-slate-600 bg-slate-50 p-2.5 rounded-lg space-y-1">
+                    {isFailed ? (
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Result:</span>
+                        <span className="font-bold text-red-600">NOT VERIFIED — FAIL</span>
+                      </div>
+                    ) : (
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Valid Until:</span>
+                        <span className="font-semibold text-slate-800">
+                          {cert.valid_until ? new Date(cert.valid_until).toLocaleDateString() : "—"}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Verification Date:</span>
+                      <span>{new Date(cert.issued_at || cert.valid_from).toLocaleDateString()}</span>
+                    </div>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Issued On:</span>
-                    <span>{new Date(cert.issued_at).toLocaleDateString()}</span>
-                  </div>
-                </div>
 
-                <div className="flex items-center gap-2 pt-1">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setSelectedCert(cert)}
-                    className="flex-1 h-8 text-[12px]"
-                  >
-                    <Eye className="size-3.5 mr-1" aria-hidden="true" />
-                    View Certificate
-                  </Button>
-                  <Button
-                    asChild
-                    size="sm"
-                    className="h-8 text-[12px] bg-[#000080] text-white hover:bg-[#000080]/90"
-                  >
-                    <Link to="/verify/$code" params={{ code: cert.verification_code }}>
-                      <ExternalLink className="size-3.5 mr-1" aria-hidden="true" />
-                      Verify Link
-                    </Link>
-                  </Button>
+                  <div className="flex items-center gap-2 pt-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSelectedCert(cert)}
+                      className="flex-1 h-8 text-[12px]"
+                    >
+                      <Eye className="size-3.5 mr-1" aria-hidden="true" />
+                      View {isFailed ? "Result" : "Certificate"}
+                    </Button>
+                    <Button
+                      asChild
+                      size="sm"
+                      className="h-8 text-[12px] bg-[#000080] text-white hover:bg-[#000080]/90"
+                    >
+                      <Link to="/verify/$code" params={{ code: cert.verification_code }}>
+                        <ExternalLink className="size-3.5 mr-1" aria-hidden="true" />
+                        Verify Link
+                      </Link>
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
 
-      {/* OFFICIAL CERTIFICATE DETAILS MODAL */}
+      {/* OFFICIAL CERTIFICATE / RESULT DETAILS MODAL */}
       <Dialog open={!!selectedCert} onOpenChange={(open) => !open && setSelectedCert(null)}>
         <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-2">
-                <Award className="size-5 text-[#ff671f]" aria-hidden="true" />
-                <DialogTitle className="text-lg font-bold text-slate-900">
-                  Certificate of Legal Metrology Verification
-                </DialogTitle>
-              </div>
-              {selectedCert ? <StatusBadge status={selectedCert.status} size="sm" /> : null}
-            </div>
-            <DialogDescription className="sr-only">
-              Official legal metrology certificate details for verified commercial instrument.
-            </DialogDescription>
-          </DialogHeader>
+          {selectedCert ? (() => {
+            const isFailed = selectedCert.status === "failed" || selectedCert.certificate_number.startsWith("VR-");
+            return (
+              <>
+                <DialogHeader>
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <div className="flex items-center gap-2">
+                      <Award className="size-5 text-[#ff671f]" aria-hidden="true" />
+                      <DialogTitle className="text-lg font-bold text-slate-900">
+                        {isFailed
+                          ? "Legal Metrology Verification Result"
+                          : "Certificate of Legal Metrology Verification"}
+                      </DialogTitle>
+                    </div>
+                    <StatusBadge status={isFailed ? "failed" : selectedCert.status} size="sm" />
+                  </div>
+                  <DialogDescription className="sr-only">
+                    Official legal metrology certificate details for commercial instrument.
+                  </DialogDescription>
+                </DialogHeader>
 
-          {selectedCert ? (
-            <div className="space-y-4 py-2 text-[14px]">
-              {/* Dual Accent Bar */}
-              <div
-                className="grid h-1.5 w-full grid-cols-2 rounded-full overflow-hidden"
-                aria-hidden="true"
-              >
-                <div className="bg-[#ff671f]" />
-                <div className="bg-[#138808]" />
-              </div>
+                <div className="space-y-4 py-2 text-[14px]">
+                  {/* Dual Accent Bar */}
+                  <div
+                    className="grid h-1.5 w-full grid-cols-2 rounded-full overflow-hidden"
+                    aria-hidden="true"
+                  >
+                    <div className="bg-[#ff671f]" />
+                    <div className={isFailed ? "bg-red-600" : "bg-[#138808]"} />
+                  </div>
 
-              {/* Certificate Header Banner */}
-              <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 text-center">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
-                  Official Certificate Number
-                </span>
-                <span className="font-mono text-[20px] font-extrabold text-[#000080] block mt-0.5">
-                  {selectedCert.certificate_number}
-                </span>
-                <span className="text-[12px] text-slate-600 block mt-1">
-                  Issued under the provisions of the Legal Metrology Act, 2009
-                </span>
-              </div>
+                  {/* Certificate Header Banner */}
+                  <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 text-center">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
+                      {isFailed ? "Official Verification Result Number" : "Official Certificate Number"}
+                    </span>
+                    <span className="font-mono text-[20px] font-extrabold text-[#000080] block mt-0.5">
+                      {selectedCert.certificate_number}
+                    </span>
+                    <span className="text-[12px] text-slate-600 block mt-1">
+                      {isFailed
+                        ? "Assessment completed under the Legal Metrology Act, 2009 — NOT VERIFIED"
+                        : "Issued under the provisions of the Legal Metrology Act, 2009 — VERIFIED"}
+                    </span>
+                  </div>
 
-              {/* Public Verification Identity */}
-              <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-4 flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <span className="text-[11px] font-bold uppercase text-slate-500 block">
-                    Public Verification Security Code
-                  </span>
-                  <span className="font-mono text-[16px] font-bold text-[#000080]">
-                    {selectedCert.verification_code}
-                  </span>
-                  <span className="text-[12px] text-slate-500 block mt-0.5">
-                    Customers can verify this seal at e-Maap Public Portal
-                  </span>
-                </div>
-                <Button
-                  asChild
-                  className="bg-[#000080] text-white hover:bg-[#000080]/90 text-[12px]"
-                >
-                  <Link to="/verify/$code" params={{ code: selectedCert.verification_code }}>
-                    <ExternalLink className="size-3.5 mr-1" aria-hidden="true" />
-                    Open Public Seal
-                  </Link>
-                </Button>
-              </div>
+                  {/* Public Verification Identity */}
+                  <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-4 flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <span className="text-[11px] font-bold uppercase text-slate-500 block">
+                        Public Verification Security Code
+                      </span>
+                      <span className="font-mono text-[16px] font-bold text-[#000080]">
+                        {selectedCert.verification_code}
+                      </span>
+                      <span className="text-[12px] text-slate-500 block mt-0.5">
+                        Anyone can verify this record at e-Maap Public Portal
+                      </span>
+                    </div>
+                    <Button
+                      asChild
+                      className="bg-[#000080] text-white hover:bg-[#000080]/90 text-[12px]"
+                    >
+                      <Link to="/verify/$code" params={{ code: selectedCert.verification_code }}>
+                        <ExternalLink className="size-3.5 mr-1" aria-hidden="true" />
+                        Open Public Record
+                      </Link>
+                    </Button>
+                  </div>
 
-              {/* Instrument & Validity Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[13px]">
-                <div className="rounded-lg border border-slate-100 bg-slate-50 p-3">
-                  <span className="text-slate-400 block text-[11px] font-semibold uppercase">
-                    Category
-                  </span>
-                  <span className="font-semibold text-slate-900">
-                    {selectedCert.instruments?.category}
-                  </span>
-                </div>
-                <div className="rounded-lg border border-slate-100 bg-slate-50 p-3">
-                  <span className="text-slate-400 block text-[11px] font-semibold uppercase">
-                    Serial Number
-                  </span>
-                  <span className="font-mono font-medium text-slate-900">
-                    {selectedCert.instruments?.serial_number}
-                  </span>
-                </div>
-                <div className="rounded-lg border border-slate-100 bg-slate-50 p-3">
-                  <span className="text-slate-400 block text-[11px] font-semibold uppercase">
-                    Manufacturer & Model
-                  </span>
-                  <span className="font-medium text-slate-900">
-                    {selectedCert.instruments?.manufacturer} {selectedCert.instruments?.model}
-                  </span>
-                </div>
-                <div className="rounded-lg border border-slate-100 bg-slate-50 p-3">
-                  <span className="text-slate-400 block text-[11px] font-semibold uppercase">
-                    Capacity / Interval
-                  </span>
-                  <span className="font-medium text-slate-900">
-                    {selectedCert.instruments?.capacity_value
-                      ? `${selectedCert.instruments.capacity_value} ${selectedCert.instruments.capacity_unit || selectedCert.instruments.unit}`
-                      : selectedCert.instruments?.unit}
-                  </span>
-                </div>
-                <div className="rounded-lg border border-slate-100 bg-slate-50 p-3">
-                  <span className="text-slate-400 block text-[11px] font-semibold uppercase">
-                    Valid From
-                  </span>
-                  <span className="font-medium text-slate-900">
-                    {new Date(selectedCert.valid_from).toLocaleDateString()}
-                  </span>
-                </div>
-                <div className="rounded-lg border border-slate-100 bg-slate-50 p-3">
-                  <span className="text-slate-400 block text-[11px] font-semibold uppercase">
-                    Valid Until
-                  </span>
-                  <span className="font-semibold text-[#138808]">
-                    {new Date(selectedCert.valid_until).toLocaleDateString()}
-                  </span>
-                </div>
-              </div>
+                  {/* Instrument & Validity Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[13px]">
+                    <div className="rounded-lg border border-slate-100 bg-slate-50 p-3">
+                      <span className="text-slate-400 block text-[11px] font-semibold uppercase">
+                        Category
+                      </span>
+                      <span className="font-semibold text-slate-900">
+                        {selectedCert.instruments?.category}
+                      </span>
+                    </div>
+                    <div className="rounded-lg border border-slate-100 bg-slate-50 p-3">
+                      <span className="text-slate-400 block text-[11px] font-semibold uppercase">
+                        Serial Number
+                      </span>
+                      <span className="font-mono font-medium text-slate-900">
+                        {selectedCert.instruments?.serial_number}
+                      </span>
+                    </div>
+                    <div className="rounded-lg border border-slate-100 bg-slate-50 p-3">
+                      <span className="text-slate-400 block text-[11px] font-semibold uppercase">
+                        Manufacturer & Model
+                      </span>
+                      <span className="font-medium text-slate-900">
+                        {selectedCert.instruments?.manufacturer} {selectedCert.instruments?.model}
+                      </span>
+                    </div>
+                    <div className="rounded-lg border border-slate-100 bg-slate-50 p-3">
+                      <span className="text-slate-400 block text-[11px] font-semibold uppercase">
+                        Capacity / Interval
+                      </span>
+                      <span className="font-medium text-slate-900">
+                        {selectedCert.instruments?.capacity_value
+                          ? `${selectedCert.instruments.capacity_value} ${selectedCert.instruments.capacity_unit || selectedCert.instruments.unit}`
+                          : selectedCert.instruments?.unit}
+                      </span>
+                    </div>
+                    <div className="rounded-lg border border-slate-100 bg-slate-50 p-3">
+                      <span className="text-slate-400 block text-[11px] font-semibold uppercase">
+                        Verification Date
+                      </span>
+                      <span className="font-medium text-slate-900">
+                        {new Date(selectedCert.issued_at || selectedCert.valid_from).toLocaleDateString()}
+                      </span>
+                    </div>
+                    {!isFailed && selectedCert.valid_until ? (
+                      <div className="rounded-lg border border-slate-100 bg-slate-50 p-3">
+                        <span className="text-slate-400 block text-[11px] font-semibold uppercase">
+                          Valid Until
+                        </span>
+                        <span className="font-semibold text-[#138808]">
+                          {new Date(selectedCert.valid_until).toLocaleDateString()}
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="rounded-lg border border-red-100 bg-red-50 p-3">
+                        <span className="text-red-500 block text-[11px] font-semibold uppercase">
+                          Outcome
+                        </span>
+                        <span className="font-bold text-red-700">
+                          NOT VERIFIED — FAIL
+                        </span>
+                      </div>
+                    )}
+                  </div>
 
-              {/* Conditions */}
-              {selectedCert.conditions ? (
-                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-[13px]">
-                  <span className="text-slate-400 block text-[11px] font-semibold uppercase">
-                    Endorsement Conditions
-                  </span>
-                  <p className="text-slate-700 mt-0.5">{selectedCert.conditions}</p>
-                </div>
-              ) : null}
+                  {/* Conditions or Failure Reason */}
+                  {isFailed ? (
+                    <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-[13px]">
+                      <span className="text-red-500 block text-[11px] font-semibold uppercase">
+                        Assessment Summary / Failure Note
+                      </span>
+                      <p className="text-red-800 mt-0.5 font-medium">
+                        {selectedCert.status_reason || "Instrument did not meet statutory legal metrology tolerance requirements."}
+                      </p>
+                    </div>
+                  ) : selectedCert.conditions ? (
+                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-[13px]">
+                      <span className="text-slate-400 block text-[11px] font-semibold uppercase">
+                        Endorsement Conditions
+                      </span>
+                      <p className="text-slate-700 mt-0.5">{selectedCert.conditions}</p>
+                    </div>
+                  ) : null}
 
-              {/* Authority Info */}
-              <div className="rounded-lg border border-slate-200 bg-white p-3 text-[13px] flex items-center justify-between">
-                <div>
-                  <span className="text-slate-400 text-[11px] font-semibold block uppercase">
-                    Issued By Authority
-                  </span>
-                  <span className="font-bold text-slate-900">
-                    {selectedCert.verification_authorities?.name || "Legal Metrology Department"}
-                  </span>
+                  {/* Authority Info */}
+                  <div className="rounded-lg border border-slate-200 bg-white p-3 text-[13px] flex items-center justify-between">
+                    <div>
+                      <span className="text-slate-400 text-[11px] font-semibold block uppercase">
+                        Issuing Authority
+                      </span>
+                      <span className="font-bold text-slate-900">
+                        {selectedCert.verification_authorities?.name || "Legal Metrology Department"}
+                      </span>
+                    </div>
+                    <ShieldCheck className={cn("size-6", isFailed ? "text-red-600" : "text-[#138808]")} aria-hidden="true" />
+                  </div>
                 </div>
-                <ShieldCheck className="size-6 text-[#138808]" aria-hidden="true" />
-              </div>
-            </div>
-          ) : null}
+              </>
+            );
+          })() : null}
 
           <DialogFooter className="gap-2 sm:gap-0">
             <Button

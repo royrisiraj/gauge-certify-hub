@@ -30,8 +30,8 @@ export type StatusMeta = {
  */
 export const VERIFICATION_STATES: Record<string, StatusMeta> = {
   VERIFIED: {
-    label: "VERIFIED",
-    explanation: "Currently valid",
+    label: "VERIFIED — PASS",
+    explanation: "Currently valid and compliant with legal metrology standards",
     tone: "success",
     icon: CheckCircle2,
     glyph: "✓",
@@ -79,8 +79,8 @@ export const VERIFICATION_STATES: Record<string, StatusMeta> = {
     glyph: "○",
   },
   FAILED: {
-    label: "FAILED",
-    explanation: "The most recent verification assessment did not pass.",
+    label: "NOT VERIFIED — FAIL",
+    explanation: "The most recent verification assessment did not pass. Instrument is not verified.",
     tone: "error",
     icon: XCircle,
     glyph: "×",
@@ -211,7 +211,7 @@ export const RECORD_STATUSES: Record<string, StatusMeta> = {
     glyph: "×",
   },
   verified: {
-    label: "VERIFIED",
+    label: "VERIFIED — PASS",
     explanation: "Assessment passed",
     tone: "success",
     icon: CheckCircle2,
@@ -225,7 +225,7 @@ export const RECORD_STATUSES: Record<string, StatusMeta> = {
     glyph: "!",
   },
   failed: {
-    label: "FAILED",
+    label: "NOT VERIFIED — FAIL",
     explanation: "Assessment did not pass",
     tone: "error",
     icon: XCircle,
