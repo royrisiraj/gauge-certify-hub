@@ -98,6 +98,6 @@ export function useAccount() {
 
 export function homePathForRole(role: AppRole | null | undefined): string {
   if (role === "business") return "/business/dashboard";
-  if (role === "inspector") return "/authority";
+  if (role === "inspector") return "/authority/dashboard";
   return "/onboarding";
 }

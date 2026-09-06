@@ -18,6 +18,13 @@ import { Route as AuthenticatedBusinessRouteRouteImport } from './routes/_authen
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as VerifyIndexRouteImport } from './routes/verify/index'
 import { Route as VerifyCodeRouteImport } from './routes/verify/$code'
+import { Route as AuthenticatedAuthorityIndexRouteImport } from './routes/_authenticated/authority/index'
+import { Route as AuthenticatedAuthorityAssignmentsRouteImport } from './routes/_authenticated/authority/assignments'
+import { Route as AuthenticatedAuthorityCertificatesRouteImport } from './routes/_authenticated/authority/certificates'
+import { Route as AuthenticatedAuthorityDashboardRouteImport } from './routes/_authenticated/authority/dashboard'
+import { Route as AuthenticatedAuthorityNotificationsRouteImport } from './routes/_authenticated/authority/notifications'
+import { Route as AuthenticatedAuthorityProfileRouteImport } from './routes/_authenticated/authority/profile'
+import { Route as AuthenticatedAuthorityQueueRouteImport } from './routes/_authenticated/authority/queue'
 import { Route as AuthenticatedBusinessIndexRouteImport } from './routes/_authenticated/business/index'
 import { Route as AuthenticatedBusinessCertificatesRouteImport } from './routes/_authenticated/business/certificates'
 import { Route as AuthenticatedBusinessDashboardRouteImport } from './routes/_authenticated/business/dashboard'
@@ -72,6 +79,48 @@ const VerifyCodeRoute = VerifyCodeRouteImport.update({
   path: '/verify/$code',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedAuthorityIndexRoute =
+  AuthenticatedAuthorityIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedAuthorityRouteRoute,
+  } as any)
+const AuthenticatedAuthorityAssignmentsRoute =
+  AuthenticatedAuthorityAssignmentsRouteImport.update({
+    id: '/assignments',
+    path: '/assignments',
+    getParentRoute: () => AuthenticatedAuthorityRouteRoute,
+  } as any)
+const AuthenticatedAuthorityCertificatesRoute =
+  AuthenticatedAuthorityCertificatesRouteImport.update({
+    id: '/certificates',
+    path: '/certificates',
+    getParentRoute: () => AuthenticatedAuthorityRouteRoute,
+  } as any)
+const AuthenticatedAuthorityDashboardRoute =
+  AuthenticatedAuthorityDashboardRouteImport.update({
+    id: '/dashboard',
+    path: '/dashboard',
+    getParentRoute: () => AuthenticatedAuthorityRouteRoute,
+  } as any)
+const AuthenticatedAuthorityNotificationsRoute =
+  AuthenticatedAuthorityNotificationsRouteImport.update({
+    id: '/notifications',
+    path: '/notifications',
+    getParentRoute: () => AuthenticatedAuthorityRouteRoute,
+  } as any)
+const AuthenticatedAuthorityProfileRoute =
+  AuthenticatedAuthorityProfileRouteImport.update({
+    id: '/profile',
+    path: '/profile',
+    getParentRoute: () => AuthenticatedAuthorityRouteRoute,
+  } as any)
+const AuthenticatedAuthorityQueueRoute =
+  AuthenticatedAuthorityQueueRouteImport.update({
+    id: '/queue',
+    path: '/queue',
+    getParentRoute: () => AuthenticatedAuthorityRouteRoute,
+  } as any)
 const AuthenticatedBusinessIndexRoute =
   AuthenticatedBusinessIndexRouteImport.update({
     id: '/',
@@ -119,33 +168,46 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/help': typeof HelpRoute
-  '/authority': typeof AuthenticatedAuthorityRouteRoute
+  '/authority': typeof AuthenticatedAuthorityRouteRouteWithChildren
   '/business': typeof AuthenticatedBusinessRouteRouteWithChildren
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/verify/$code': typeof VerifyCodeRoute
   '/verify/': typeof VerifyIndexRoute
+  '/authority/assignments': typeof AuthenticatedAuthorityAssignmentsRoute
+  '/authority/certificates': typeof AuthenticatedAuthorityCertificatesRoute
+  '/authority/dashboard': typeof AuthenticatedAuthorityDashboardRoute
+  '/authority/notifications': typeof AuthenticatedAuthorityNotificationsRoute
+  '/authority/profile': typeof AuthenticatedAuthorityProfileRoute
+  '/authority/queue': typeof AuthenticatedAuthorityQueueRoute
   '/business/certificates': typeof AuthenticatedBusinessCertificatesRoute
   '/business/dashboard': typeof AuthenticatedBusinessDashboardRoute
   '/business/instruments': typeof AuthenticatedBusinessInstrumentsRoute
   '/business/notifications': typeof AuthenticatedBusinessNotificationsRoute
   '/business/profile': typeof AuthenticatedBusinessProfileRoute
   '/business/requests': typeof AuthenticatedBusinessRequestsRoute
+  '/authority/': typeof AuthenticatedAuthorityIndexRoute
   '/business/': typeof AuthenticatedBusinessIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/help': typeof HelpRoute
-  '/authority': typeof AuthenticatedAuthorityRouteRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/verify/$code': typeof VerifyCodeRoute
   '/verify': typeof VerifyIndexRoute
+  '/authority/assignments': typeof AuthenticatedAuthorityAssignmentsRoute
+  '/authority/certificates': typeof AuthenticatedAuthorityCertificatesRoute
+  '/authority/dashboard': typeof AuthenticatedAuthorityDashboardRoute
+  '/authority/notifications': typeof AuthenticatedAuthorityNotificationsRoute
+  '/authority/profile': typeof AuthenticatedAuthorityProfileRoute
+  '/authority/queue': typeof AuthenticatedAuthorityQueueRoute
   '/business/certificates': typeof AuthenticatedBusinessCertificatesRoute
   '/business/dashboard': typeof AuthenticatedBusinessDashboardRoute
   '/business/instruments': typeof AuthenticatedBusinessInstrumentsRoute
   '/business/notifications': typeof AuthenticatedBusinessNotificationsRoute
   '/business/profile': typeof AuthenticatedBusinessProfileRoute
   '/business/requests': typeof AuthenticatedBusinessRequestsRoute
+  '/authority': typeof AuthenticatedAuthorityIndexRoute
   '/business': typeof AuthenticatedBusinessIndexRoute
 }
 export interface FileRoutesById {
@@ -154,17 +216,24 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/help': typeof HelpRoute
-  '/_authenticated/authority': typeof AuthenticatedAuthorityRouteRoute
+  '/_authenticated/authority': typeof AuthenticatedAuthorityRouteRouteWithChildren
   '/_authenticated/business': typeof AuthenticatedBusinessRouteRouteWithChildren
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/verify/$code': typeof VerifyCodeRoute
   '/verify/': typeof VerifyIndexRoute
+  '/_authenticated/authority/assignments': typeof AuthenticatedAuthorityAssignmentsRoute
+  '/_authenticated/authority/certificates': typeof AuthenticatedAuthorityCertificatesRoute
+  '/_authenticated/authority/dashboard': typeof AuthenticatedAuthorityDashboardRoute
+  '/_authenticated/authority/notifications': typeof AuthenticatedAuthorityNotificationsRoute
+  '/_authenticated/authority/profile': typeof AuthenticatedAuthorityProfileRoute
+  '/_authenticated/authority/queue': typeof AuthenticatedAuthorityQueueRoute
   '/_authenticated/business/certificates': typeof AuthenticatedBusinessCertificatesRoute
   '/_authenticated/business/dashboard': typeof AuthenticatedBusinessDashboardRoute
   '/_authenticated/business/instruments': typeof AuthenticatedBusinessInstrumentsRoute
   '/_authenticated/business/notifications': typeof AuthenticatedBusinessNotificationsRoute
   '/_authenticated/business/profile': typeof AuthenticatedBusinessProfileRoute
   '/_authenticated/business/requests': typeof AuthenticatedBusinessRequestsRoute
+  '/_authenticated/authority/': typeof AuthenticatedAuthorityIndexRoute
   '/_authenticated/business/': typeof AuthenticatedBusinessIndexRoute
 }
 export interface FileRouteTypes {
@@ -178,28 +247,41 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/verify/$code'
     | '/verify/'
+    | '/authority/assignments'
+    | '/authority/certificates'
+    | '/authority/dashboard'
+    | '/authority/notifications'
+    | '/authority/profile'
+    | '/authority/queue'
     | '/business/certificates'
     | '/business/dashboard'
     | '/business/instruments'
     | '/business/notifications'
     | '/business/profile'
     | '/business/requests'
+    | '/authority/'
     | '/business/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/auth'
     | '/help'
-    | '/authority'
     | '/onboarding'
     | '/verify/$code'
     | '/verify'
+    | '/authority/assignments'
+    | '/authority/certificates'
+    | '/authority/dashboard'
+    | '/authority/notifications'
+    | '/authority/profile'
+    | '/authority/queue'
     | '/business/certificates'
     | '/business/dashboard'
     | '/business/instruments'
     | '/business/notifications'
     | '/business/profile'
     | '/business/requests'
+    | '/authority'
     | '/business'
   id:
     | '__root__'
@@ -212,12 +294,19 @@ export interface FileRouteTypes {
     | '/_authenticated/onboarding'
     | '/verify/$code'
     | '/verify/'
+    | '/_authenticated/authority/assignments'
+    | '/_authenticated/authority/certificates'
+    | '/_authenticated/authority/dashboard'
+    | '/_authenticated/authority/notifications'
+    | '/_authenticated/authority/profile'
+    | '/_authenticated/authority/queue'
     | '/_authenticated/business/certificates'
     | '/_authenticated/business/dashboard'
     | '/_authenticated/business/instruments'
     | '/_authenticated/business/notifications'
     | '/_authenticated/business/profile'
     | '/_authenticated/business/requests'
+    | '/_authenticated/authority/'
     | '/_authenticated/business/'
   fileRoutesById: FileRoutesById
 }
@@ -295,6 +384,55 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof VerifyCodeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/authority/': {
+      id: '/_authenticated/authority/'
+      path: '/'
+      fullPath: '/authority/'
+      preLoaderRoute: typeof AuthenticatedAuthorityIndexRouteImport
+      parentRoute: typeof AuthenticatedAuthorityRouteRoute
+    }
+    '/_authenticated/authority/assignments': {
+      id: '/_authenticated/authority/assignments'
+      path: '/assignments'
+      fullPath: '/authority/assignments'
+      preLoaderRoute: typeof AuthenticatedAuthorityAssignmentsRouteImport
+      parentRoute: typeof AuthenticatedAuthorityRouteRoute
+    }
+    '/_authenticated/authority/certificates': {
+      id: '/_authenticated/authority/certificates'
+      path: '/certificates'
+      fullPath: '/authority/certificates'
+      preLoaderRoute: typeof AuthenticatedAuthorityCertificatesRouteImport
+      parentRoute: typeof AuthenticatedAuthorityRouteRoute
+    }
+    '/_authenticated/authority/dashboard': {
+      id: '/_authenticated/authority/dashboard'
+      path: '/dashboard'
+      fullPath: '/authority/dashboard'
+      preLoaderRoute: typeof AuthenticatedAuthorityDashboardRouteImport
+      parentRoute: typeof AuthenticatedAuthorityRouteRoute
+    }
+    '/_authenticated/authority/notifications': {
+      id: '/_authenticated/authority/notifications'
+      path: '/notifications'
+      fullPath: '/authority/notifications'
+      preLoaderRoute: typeof AuthenticatedAuthorityNotificationsRouteImport
+      parentRoute: typeof AuthenticatedAuthorityRouteRoute
+    }
+    '/_authenticated/authority/profile': {
+      id: '/_authenticated/authority/profile'
+      path: '/profile'
+      fullPath: '/authority/profile'
+      preLoaderRoute: typeof AuthenticatedAuthorityProfileRouteImport
+      parentRoute: typeof AuthenticatedAuthorityRouteRoute
+    }
+    '/_authenticated/authority/queue': {
+      id: '/_authenticated/authority/queue'
+      path: '/queue'
+      fullPath: '/authority/queue'
+      preLoaderRoute: typeof AuthenticatedAuthorityQueueRouteImport
+      parentRoute: typeof AuthenticatedAuthorityRouteRoute
+    }
     '/_authenticated/business/': {
       id: '/_authenticated/business/'
       path: '/'
@@ -347,6 +485,35 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedAuthorityRouteRouteChildren {
+  AuthenticatedAuthorityAssignmentsRoute: typeof AuthenticatedAuthorityAssignmentsRoute
+  AuthenticatedAuthorityCertificatesRoute: typeof AuthenticatedAuthorityCertificatesRoute
+  AuthenticatedAuthorityDashboardRoute: typeof AuthenticatedAuthorityDashboardRoute
+  AuthenticatedAuthorityNotificationsRoute: typeof AuthenticatedAuthorityNotificationsRoute
+  AuthenticatedAuthorityProfileRoute: typeof AuthenticatedAuthorityProfileRoute
+  AuthenticatedAuthorityQueueRoute: typeof AuthenticatedAuthorityQueueRoute
+  AuthenticatedAuthorityIndexRoute: typeof AuthenticatedAuthorityIndexRoute
+}
+
+const AuthenticatedAuthorityRouteRouteChildren: AuthenticatedAuthorityRouteRouteChildren =
+  {
+    AuthenticatedAuthorityAssignmentsRoute:
+      AuthenticatedAuthorityAssignmentsRoute,
+    AuthenticatedAuthorityCertificatesRoute:
+      AuthenticatedAuthorityCertificatesRoute,
+    AuthenticatedAuthorityDashboardRoute: AuthenticatedAuthorityDashboardRoute,
+    AuthenticatedAuthorityNotificationsRoute:
+      AuthenticatedAuthorityNotificationsRoute,
+    AuthenticatedAuthorityProfileRoute: AuthenticatedAuthorityProfileRoute,
+    AuthenticatedAuthorityQueueRoute: AuthenticatedAuthorityQueueRoute,
+    AuthenticatedAuthorityIndexRoute: AuthenticatedAuthorityIndexRoute,
+  }
+
+const AuthenticatedAuthorityRouteRouteWithChildren =
+  AuthenticatedAuthorityRouteRoute._addFileChildren(
+    AuthenticatedAuthorityRouteRouteChildren,
+  )
+
 interface AuthenticatedBusinessRouteRouteChildren {
   AuthenticatedBusinessCertificatesRoute: typeof AuthenticatedBusinessCertificatesRoute
   AuthenticatedBusinessDashboardRoute: typeof AuthenticatedBusinessDashboardRoute
@@ -377,13 +544,14 @@ const AuthenticatedBusinessRouteRouteWithChildren =
   )
 
 interface AuthenticatedRouteRouteChildren {
-  AuthenticatedAuthorityRouteRoute: typeof AuthenticatedAuthorityRouteRoute
+  AuthenticatedAuthorityRouteRoute: typeof AuthenticatedAuthorityRouteRouteWithChildren
   AuthenticatedBusinessRouteRoute: typeof AuthenticatedBusinessRouteRouteWithChildren
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedAuthorityRouteRoute: AuthenticatedAuthorityRouteRoute,
+  AuthenticatedAuthorityRouteRoute:
+    AuthenticatedAuthorityRouteRouteWithChildren,
   AuthenticatedBusinessRouteRoute: AuthenticatedBusinessRouteRouteWithChildren,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
 }

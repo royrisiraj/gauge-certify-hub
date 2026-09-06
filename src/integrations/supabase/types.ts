@@ -262,7 +262,9 @@ export type Database = {
           created_at: string;
           created_by: string | null;
           id: string;
+          latitude: number | null;
           location_label: string | null;
+          longitude: number | null;
           manufacturer: string;
           model: string;
           public_code: string;
@@ -279,7 +281,9 @@ export type Database = {
           created_at?: string;
           created_by?: string | null;
           id?: string;
+          latitude?: number | null;
           location_label?: string | null;
+          longitude?: number | null;
           manufacturer: string;
           model: string;
           public_code?: string;
@@ -296,7 +300,9 @@ export type Database = {
           created_at?: string;
           created_by?: string | null;
           id?: string;
+          latitude?: number | null;
           location_label?: string | null;
+          longitude?: number | null;
           manufacturer?: string;
           model?: string;
           public_code?: string;

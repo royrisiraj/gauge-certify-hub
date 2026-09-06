@@ -24,13 +24,19 @@ export interface BusinessLocationData {
   latitude: number | null;
   longitude: number | null;
   formattedAddress: string;
-  source: "manual" | "map" | "geolocation";
+  source: "manual" | "map" | "geolocation" | "business";
 }
 
-interface BusinessLocationPickerProps {
+export interface BusinessLocationPickerProps {
   value: BusinessLocationData;
   onChange: (value: BusinessLocationData) => void;
   error?: string | null;
+  label?: string;
+  description?: string;
+  allowSameAsBusiness?: boolean;
+  businessLocation?: BusinessLocationData | null;
+  isSameAsBusiness?: boolean;
+  onSameAsBusinessChange?: (isSame: boolean) => void;
 }
 
 // Prominent commercial presets across India for instant selection/fallback

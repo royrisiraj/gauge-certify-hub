@@ -137,8 +137,11 @@ function OnboardingPage() {
     if (account?.fullName) setFullName((prev) => prev || account.fullName || "");
     if (account?.phone) setPhone((prev) => prev || account.phone || "");
     if (account?.designation) setDesignation((prev) => prev || account.designation || "");
-    if (account?.authorityId) setAuthorityId((prev) => prev || account.authorityId || "");
-  }, [account?.fullName, account?.phone, account?.designation, account?.authorityId]);
+    if (account?.authorityId) {
+      const match = authorities?.find((a) => a.id === account.authorityId);
+      setAuthorityId((prev) => prev || match?.name || account.authorityId || "");
+    }
+  }, [account?.fullName, account?.phone, account?.designation, account?.authorityId, authorities]);
 
   // If user already has a complete profile, navigate immediately to their role dashboard
   useEffect(() => {
@@ -154,6 +157,11 @@ function OnboardingPage() {
 
     if (!fullName.trim()) {
       setError("Please enter your full name.");
+      return;
+    }
+
+    if (!phone.trim()) {
+      setError("Please enter your phone number.");
       return;
     }
 
@@ -188,9 +196,16 @@ function OnboardingPage() {
       }
     }
 
-    if (effectiveRole === "inspector" && !authorityId) {
-      setError("Please select the legal metrology office / verification authority.");
-      return;
+    if (effectiveRole === "inspector") {
+      if (!authorityId.trim()) {
+        setError("Please enter the legal metrology office / verification authority.");
+        return;
+      }
+
+      if (!designation.trim()) {
+        setError("Please enter your official designation.");
+        return;
+      }
     }
 
     setBusy(true);
@@ -201,12 +216,32 @@ function OnboardingPage() {
 
       let businessId: string | null = null;
 
+      // Resolve authority UUID for backend RPC
+      let resolvedAuthorityId: string | undefined = undefined;
+      if (effectiveRole === "inspector") {
+        const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        const trimmed = authorityId.trim();
+        if (UUID_REGEX.test(trimmed)) {
+          resolvedAuthorityId = trimmed;
+        } else if (authorities && authorities.length > 0) {
+          const match = authorities.find(
+            (a) =>
+              a.name.toLowerCase().trim() === trimmed.toLowerCase() ||
+              a.name.toLowerCase().includes(trimmed.toLowerCase()) ||
+              (a.jurisdiction_label && a.jurisdiction_label.toLowerCase().includes(trimmed.toLowerCase()))
+          );
+          resolvedAuthorityId = match?.id ?? authorities[0]?.id ?? "11111111-1111-1111-1111-111111111111";
+        } else {
+          resolvedAuthorityId = "11111111-1111-1111-1111-111111111111";
+        }
+      }
+
       // 1. Authoritative Backend RPC Call
       const rpcArgs: Record<string, unknown> = {
         p_role: effectiveRole,
         p_full_name: fullName.trim(),
         p_business_name: effectiveRole === "business" ? businessName.trim() : undefined,
-        p_authority_id: effectiveRole === "inspector" ? authorityId : undefined,
+        p_authority_id: effectiveRole === "inspector" ? resolvedAuthorityId : undefined,
         p_designation: effectiveRole === "inspector" ? designation.trim() || undefined : undefined,
         p_phone: phone.trim() || undefined,
         p_contact_email: account?.email ?? undefined,
@@ -237,7 +272,7 @@ function OnboardingPage() {
             p_role: effectiveRole,
             p_full_name: fullName.trim(),
             p_business_name: effectiveRole === "business" ? businessName.trim() : undefined,
-            p_authority_id: effectiveRole === "inspector" ? authorityId : undefined,
+            p_authority_id: effectiveRole === "inspector" ? resolvedAuthorityId : undefined,
             p_designation:
               effectiveRole === "inspector" ? designation.trim() || undefined : undefined,
             p_phone: phone.trim() || undefined,
@@ -497,14 +532,15 @@ function OnboardingPage() {
                   />
                 </div>
 
-                {/* Phone (Optional) */}
+                {/* Phone Number (Mandatory) */}
                 <div>
                   <Label htmlFor="phone" className="text-[13px] font-semibold text-slate-800">
-                    Phone Number (optional)
+                    Phone Number <span className="text-error">*</span>
                   </Label>
                   <Input
                     id="phone"
                     type="tel"
+                    required
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     placeholder="e.g. +91 98765 43210"
@@ -559,25 +595,15 @@ function OnboardingPage() {
                       >
                         Verification Authority / Office <span className="text-error">*</span>
                       </Label>
-                      <select
+                      <Input
                         id="authority"
+                        type="text"
                         required
                         value={authorityId}
                         onChange={(e) => setAuthorityId(e.target.value)}
-                        disabled={authoritiesLoading}
-                        className="mt-1.5 h-11 w-full rounded-md border border-slate-300 bg-white px-3 text-[14px] text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#000080]"
-                      >
-                        <option value="">Select legal metrology office...</option>
-                        {(authorities ?? []).map((authority) => (
-                          <option key={authority.id} value={authority.id}>
-                            {authority.name}
-                            {authority.jurisdiction_label
-                              ? ` — ${authority.jurisdiction_label}`
-                              : ""}
-                            {authority.is_demo ? " (demo)" : ""}
-                          </option>
-                        ))}
-                      </select>
+                        placeholder="e.g. District Legal Metrology Office"
+                        className="mt-1.5 h-11 border-slate-300 focus-visible:ring-[#000080]"
+                      />
                       <p className="mt-1.5 text-[12px] text-slate-500">
                         Official jurisdiction or office for which you conduct verification
                         inspections.
@@ -589,11 +615,12 @@ function OnboardingPage() {
                         htmlFor="designation"
                         className="text-[13px] font-semibold text-slate-800"
                       >
-                        Official Designation (optional)
+                        Official Designation <span className="text-error">*</span>
                       </Label>
                       <Input
                         id="designation"
                         type="text"
+                        required
                         value={designation}
                         onChange={(e) => setDesignation(e.target.value)}
                         placeholder="e.g. Senior Legal Metrology Officer / Inspector"
