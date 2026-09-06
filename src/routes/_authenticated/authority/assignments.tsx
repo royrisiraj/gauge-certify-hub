@@ -7,6 +7,7 @@ import {
   ClipboardCheck,
   Clock,
   Scale,
+  Calendar,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAccount } from "@/lib/emaap/session";
@@ -25,6 +26,8 @@ type AssignmentRow = {
   instrument_id: string;
   business_id: string;
   reason: string | null;
+  preferred_date?: string | null;
+  preferred_time_slot?: string | null;
   instruments?: { public_code: string; serial_number: string; category: string } | null;
   businesses?: { name: string; city: string | null } | null;
 };
@@ -58,7 +61,7 @@ function AuthorityAssignmentsPage() {
       const { data, error } = await supabase
         .from("verification_requests")
         .select(
-          "id, status, request_type, submitted_at, assigned_at, instrument_id, business_id, reason, instruments(public_code, serial_number, category), businesses(name, city)",
+          "id, status, request_type, submitted_at, assigned_at, instrument_id, business_id, reason, preferred_date, preferred_time_slot, instruments(public_code, serial_number, category), businesses(name, city)",
         )
         .eq("assigned_to", userId)
         .in("status", ["assigned", "under_review"])
@@ -120,6 +123,23 @@ function AuthorityAssignmentsPage() {
                   {req.businesses?.city ? `, ${req.businesses.city}` : ""} · Assigned{" "}
                   {formatDate(req.assigned_at)}
                 </p>
+                {/* Clearly display Preferred Date and Preferred Time Slot */}
+                {(req.preferred_date || req.preferred_time_slot) && (
+                  <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
+                    {req.preferred_date && (
+                      <span className="inline-flex items-center gap-1.5 rounded-md bg-blue-50 px-2.5 py-1 font-semibold text-[#000080] border border-blue-200">
+                        <Calendar className="size-3.5 text-[#000080]" aria-hidden="true" />
+                        <span>Preferred Date: {formatDate(req.preferred_date)}</span>
+                      </span>
+                    )}
+                    {req.preferred_time_slot && (
+                      <span className="inline-flex items-center gap-1.5 rounded-md bg-slate-100 px-2.5 py-1 font-semibold text-slate-800 border border-slate-200">
+                        <Clock className="size-3.5 text-slate-600" aria-hidden="true" />
+                        <span>Preferred Time Slot: {req.preferred_time_slot}</span>
+                      </span>
+                    )}
+                  </div>
+                )}
                 {req.reason ? (
                   <p className="text-xs text-slate-400 italic">Reason: {req.reason}</p>
                 ) : null}

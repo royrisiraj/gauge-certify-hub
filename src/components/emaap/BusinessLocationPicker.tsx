@@ -139,7 +139,17 @@ interface GeoNotice {
   message: string;
 }
 
-export function BusinessLocationPicker({ value, onChange, error }: BusinessLocationPickerProps) {
+export function BusinessLocationPicker({
+  value,
+  onChange,
+  error,
+  label,
+  description,
+  allowSameAsBusiness,
+  businessLocation,
+  isSameAsBusiness,
+  onSameAsBusinessChange,
+}: BusinessLocationPickerProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<LeafletMap | null>(null);
   const markerRef = useRef<LeafletMarker | null>(null);
@@ -648,40 +658,83 @@ export function BusinessLocationPicker({ value, onChange, error }: BusinessLocat
           <div>
             <div className="flex items-center gap-2">
               <Label className="text-[14px] sm:text-[15px] font-bold text-slate-900">
-                Business Location <span className="text-error">*</span>
+                {label || "Business Location"} <span className="text-error">*</span>
               </Label>
               <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
                 Required
               </span>
             </div>
             <p className="mt-1 text-[13px] text-slate-600 leading-relaxed max-w-[540px]">
-              Provide the location of your commercial establishment. You can enter your business
-              address, select a point directly on the interactive map, or use your current location.
+              {description || "Provide the location of your commercial establishment. You can enter your business address, select a point directly on the interactive map, or use your current location."}
             </p>
           </div>
 
-          {/* "Use My Current Location" Action Button */}
-          <Button
-            id="btn-use-current-location"
-            type="button"
-            variant="outline"
-            onClick={handleUseCurrentLocation}
-            disabled={isGeolocating}
-            className="shrink-0 h-10 px-3.5 rounded-lg border-[#000080]/30 bg-white hover:bg-blue-50/80 text-[#000080] text-[12.5px] font-semibold transition-colors cursor-pointer shadow-2xs self-start sm:self-auto"
-            title="Detect your device GPS coordinates and sync address"
-          >
-            {isGeolocating ? (
-              <span className="flex items-center gap-1.5">
-                <Loader2 className="size-4 animate-spin text-[#000080]" aria-hidden="true" />
-                <span>Getting your location...</span>
-              </span>
-            ) : (
-              <span className="flex items-center gap-1.5">
-                <Navigation className="size-4 text-[#ff671f]" aria-hidden="true" />
-                <span>Use My Current Location</span>
-              </span>
-            )}
-          </Button>
+          {/* ACTION BUTTONS: Current Location + Same as Business */}
+          <div className="flex flex-col sm:flex-row gap-2 shrink-0 self-start sm:self-auto">
+            {/* "Same as Business Location" button */}
+            {allowSameAsBusiness && businessLocation && onSameAsBusinessChange ? (
+              <Button
+                id="btn-same-as-business"
+                type="button"
+                variant={isSameAsBusiness ? "default" : "outline"}
+                onClick={() => {
+                  if (!isSameAsBusiness) {
+                    onChange({
+                      ...businessLocation,
+                      source: "business",
+                    });
+                    onSameAsBusinessChange(true);
+                    // Sync map
+                    if (mapInstanceRef.current && markerRef.current && businessLocation.latitude && businessLocation.longitude) {
+                      markerRef.current.setLatLng([businessLocation.latitude, businessLocation.longitude]);
+                      mapInstanceRef.current.setView([businessLocation.latitude, businessLocation.longitude], 15, { animate: true });
+                    }
+                    setGeoNotice({
+                      type: "success",
+                      title: "Business Location Applied",
+                      message: "Instrument location set to your registered business address.",
+                    });
+                  } else {
+                    onSameAsBusinessChange(false);
+                  }
+                }}
+                disabled={!businessLocation.formattedAddress && !businessLocation.addressLine}
+                className={isSameAsBusiness
+                  ? "h-10 px-3.5 rounded-lg bg-[#138808] hover:bg-[#138808]/90 text-white text-[12.5px] font-semibold transition-colors cursor-pointer shadow-2xs"
+                  : "h-10 px-3.5 rounded-lg border-[#138808]/30 bg-white hover:bg-emerald-50/80 text-[#138808] text-[12.5px] font-semibold transition-colors cursor-pointer shadow-2xs"
+                }
+                title="Copy the address and coordinates from your registered business location"
+              >
+                <span className="flex items-center gap-1.5">
+                  <Building className="size-4" aria-hidden="true" />
+                  <span>{isSameAsBusiness ? "✓ Using Business Location" : "Same as Business Location"}</span>
+                </span>
+              </Button>
+            ) : null}
+
+            {/* "Use My Current Location" Action Button */}
+            <Button
+              id="btn-use-current-location"
+              type="button"
+              variant="outline"
+              onClick={handleUseCurrentLocation}
+              disabled={isGeolocating}
+              className="shrink-0 h-10 px-3.5 rounded-lg border-[#000080]/30 bg-white hover:bg-blue-50/80 text-[#000080] text-[12.5px] font-semibold transition-colors cursor-pointer shadow-2xs"
+              title="Detect your device GPS coordinates and sync address"
+            >
+              {isGeolocating ? (
+                <span className="flex items-center gap-1.5">
+                  <Loader2 className="size-4 animate-spin text-[#000080]" aria-hidden="true" />
+                  <span>Getting your location...</span>
+                </span>
+              ) : (
+                <span className="flex items-center gap-1.5">
+                  <Navigation className="size-4 text-[#ff671f]" aria-hidden="true" />
+                  <span>Use My Current Location</span>
+                </span>
+              )}
+            </Button>
+          </div>
         </div>
 
         {/* GEOLOCATION / NOTIFICATION NOTICE (Only shown if user triggered action; never on load) */}

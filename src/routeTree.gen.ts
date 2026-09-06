@@ -15,6 +15,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as HelpRouteImport } from './routes/help'
 import { Route as AuthenticatedAuthorityRouteRouteImport } from './routes/_authenticated/authority/route'
 import { Route as AuthenticatedBusinessRouteRouteImport } from './routes/_authenticated/business/route'
+import { Route as AuthenticatedLmoRouteRouteImport } from './routes/_authenticated/lmo/route'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as VerifyIndexRouteImport } from './routes/verify/index'
 import { Route as VerifyCodeRouteImport } from './routes/verify/$code'
@@ -25,6 +26,8 @@ import { Route as AuthenticatedAuthorityDashboardRouteImport } from './routes/_a
 import { Route as AuthenticatedAuthorityNotificationsRouteImport } from './routes/_authenticated/authority/notifications'
 import { Route as AuthenticatedAuthorityProfileRouteImport } from './routes/_authenticated/authority/profile'
 import { Route as AuthenticatedAuthorityQueueRouteImport } from './routes/_authenticated/authority/queue'
+import { Route as AuthenticatedAuthoritySmartRouteRouteImport } from './routes/_authenticated/authority/smart-route'
+import { Route as AuthenticatedAuthorityVerifyRouteImport } from './routes/_authenticated/authority/verify'
 import { Route as AuthenticatedBusinessIndexRouteImport } from './routes/_authenticated/business/index'
 import { Route as AuthenticatedBusinessCertificatesRouteImport } from './routes/_authenticated/business/certificates'
 import { Route as AuthenticatedBusinessDashboardRouteImport } from './routes/_authenticated/business/dashboard'
@@ -32,6 +35,7 @@ import { Route as AuthenticatedBusinessInstrumentsRouteImport } from './routes/_
 import { Route as AuthenticatedBusinessNotificationsRouteImport } from './routes/_authenticated/business/notifications'
 import { Route as AuthenticatedBusinessProfileRouteImport } from './routes/_authenticated/business/profile'
 import { Route as AuthenticatedBusinessRequestsRouteImport } from './routes/_authenticated/business/requests'
+import { Route as AuthenticatedLmoSmartRouteRouteImport } from './routes/_authenticated/lmo/smart-route'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -64,6 +68,11 @@ const AuthenticatedBusinessRouteRoute =
     path: '/business',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedLmoRouteRoute = AuthenticatedLmoRouteRouteImport.update({
+  id: '/lmo',
+  path: '/lmo',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
@@ -121,6 +130,18 @@ const AuthenticatedAuthorityQueueRoute =
     path: '/queue',
     getParentRoute: () => AuthenticatedAuthorityRouteRoute,
   } as any)
+const AuthenticatedAuthoritySmartRouteRoute =
+  AuthenticatedAuthoritySmartRouteRouteImport.update({
+    id: '/smart-route',
+    path: '/smart-route',
+    getParentRoute: () => AuthenticatedAuthorityRouteRoute,
+  } as any)
+const AuthenticatedAuthorityVerifyRoute =
+  AuthenticatedAuthorityVerifyRouteImport.update({
+    id: '/verify',
+    path: '/verify',
+    getParentRoute: () => AuthenticatedAuthorityRouteRoute,
+  } as any)
 const AuthenticatedBusinessIndexRoute =
   AuthenticatedBusinessIndexRouteImport.update({
     id: '/',
@@ -163,6 +184,12 @@ const AuthenticatedBusinessRequestsRoute =
     path: '/requests',
     getParentRoute: () => AuthenticatedBusinessRouteRoute,
   } as any)
+const AuthenticatedLmoSmartRouteRoute =
+  AuthenticatedLmoSmartRouteRouteImport.update({
+    id: '/smart-route',
+    path: '/smart-route',
+    getParentRoute: () => AuthenticatedLmoRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -170,6 +197,7 @@ export interface FileRoutesByFullPath {
   '/help': typeof HelpRoute
   '/authority': typeof AuthenticatedAuthorityRouteRouteWithChildren
   '/business': typeof AuthenticatedBusinessRouteRouteWithChildren
+  '/lmo': typeof AuthenticatedLmoRouteRouteWithChildren
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/verify/$code': typeof VerifyCodeRoute
   '/verify/': typeof VerifyIndexRoute
@@ -179,12 +207,15 @@ export interface FileRoutesByFullPath {
   '/authority/notifications': typeof AuthenticatedAuthorityNotificationsRoute
   '/authority/profile': typeof AuthenticatedAuthorityProfileRoute
   '/authority/queue': typeof AuthenticatedAuthorityQueueRoute
+  '/authority/smart-route': typeof AuthenticatedAuthoritySmartRouteRoute
+  '/authority/verify': typeof AuthenticatedAuthorityVerifyRoute
   '/business/certificates': typeof AuthenticatedBusinessCertificatesRoute
   '/business/dashboard': typeof AuthenticatedBusinessDashboardRoute
   '/business/instruments': typeof AuthenticatedBusinessInstrumentsRoute
   '/business/notifications': typeof AuthenticatedBusinessNotificationsRoute
   '/business/profile': typeof AuthenticatedBusinessProfileRoute
   '/business/requests': typeof AuthenticatedBusinessRequestsRoute
+  '/lmo/smart-route': typeof AuthenticatedLmoSmartRouteRoute
   '/authority/': typeof AuthenticatedAuthorityIndexRoute
   '/business/': typeof AuthenticatedBusinessIndexRoute
 }
@@ -192,6 +223,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/help': typeof HelpRoute
+  '/lmo': typeof AuthenticatedLmoRouteRouteWithChildren
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/verify/$code': typeof VerifyCodeRoute
   '/verify': typeof VerifyIndexRoute
@@ -201,12 +233,15 @@ export interface FileRoutesByTo {
   '/authority/notifications': typeof AuthenticatedAuthorityNotificationsRoute
   '/authority/profile': typeof AuthenticatedAuthorityProfileRoute
   '/authority/queue': typeof AuthenticatedAuthorityQueueRoute
+  '/authority/smart-route': typeof AuthenticatedAuthoritySmartRouteRoute
+  '/authority/verify': typeof AuthenticatedAuthorityVerifyRoute
   '/business/certificates': typeof AuthenticatedBusinessCertificatesRoute
   '/business/dashboard': typeof AuthenticatedBusinessDashboardRoute
   '/business/instruments': typeof AuthenticatedBusinessInstrumentsRoute
   '/business/notifications': typeof AuthenticatedBusinessNotificationsRoute
   '/business/profile': typeof AuthenticatedBusinessProfileRoute
   '/business/requests': typeof AuthenticatedBusinessRequestsRoute
+  '/lmo/smart-route': typeof AuthenticatedLmoSmartRouteRoute
   '/authority': typeof AuthenticatedAuthorityIndexRoute
   '/business': typeof AuthenticatedBusinessIndexRoute
 }
@@ -218,6 +253,7 @@ export interface FileRoutesById {
   '/help': typeof HelpRoute
   '/_authenticated/authority': typeof AuthenticatedAuthorityRouteRouteWithChildren
   '/_authenticated/business': typeof AuthenticatedBusinessRouteRouteWithChildren
+  '/_authenticated/lmo': typeof AuthenticatedLmoRouteRouteWithChildren
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/verify/$code': typeof VerifyCodeRoute
   '/verify/': typeof VerifyIndexRoute
@@ -227,12 +263,15 @@ export interface FileRoutesById {
   '/_authenticated/authority/notifications': typeof AuthenticatedAuthorityNotificationsRoute
   '/_authenticated/authority/profile': typeof AuthenticatedAuthorityProfileRoute
   '/_authenticated/authority/queue': typeof AuthenticatedAuthorityQueueRoute
+  '/_authenticated/authority/smart-route': typeof AuthenticatedAuthoritySmartRouteRoute
+  '/_authenticated/authority/verify': typeof AuthenticatedAuthorityVerifyRoute
   '/_authenticated/business/certificates': typeof AuthenticatedBusinessCertificatesRoute
   '/_authenticated/business/dashboard': typeof AuthenticatedBusinessDashboardRoute
   '/_authenticated/business/instruments': typeof AuthenticatedBusinessInstrumentsRoute
   '/_authenticated/business/notifications': typeof AuthenticatedBusinessNotificationsRoute
   '/_authenticated/business/profile': typeof AuthenticatedBusinessProfileRoute
   '/_authenticated/business/requests': typeof AuthenticatedBusinessRequestsRoute
+  '/_authenticated/lmo/smart-route': typeof AuthenticatedLmoSmartRouteRoute
   '/_authenticated/authority/': typeof AuthenticatedAuthorityIndexRoute
   '/_authenticated/business/': typeof AuthenticatedBusinessIndexRoute
 }
@@ -244,6 +283,7 @@ export interface FileRouteTypes {
     | '/help'
     | '/authority'
     | '/business'
+    | '/lmo'
     | '/onboarding'
     | '/verify/$code'
     | '/verify/'
@@ -253,12 +293,15 @@ export interface FileRouteTypes {
     | '/authority/notifications'
     | '/authority/profile'
     | '/authority/queue'
+    | '/authority/smart-route'
+    | '/authority/verify'
     | '/business/certificates'
     | '/business/dashboard'
     | '/business/instruments'
     | '/business/notifications'
     | '/business/profile'
     | '/business/requests'
+    | '/lmo/smart-route'
     | '/authority/'
     | '/business/'
   fileRoutesByTo: FileRoutesByTo
@@ -266,6 +309,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/help'
+    | '/lmo'
     | '/onboarding'
     | '/verify/$code'
     | '/verify'
@@ -275,12 +319,15 @@ export interface FileRouteTypes {
     | '/authority/notifications'
     | '/authority/profile'
     | '/authority/queue'
+    | '/authority/smart-route'
+    | '/authority/verify'
     | '/business/certificates'
     | '/business/dashboard'
     | '/business/instruments'
     | '/business/notifications'
     | '/business/profile'
     | '/business/requests'
+    | '/lmo/smart-route'
     | '/authority'
     | '/business'
   id:
@@ -291,6 +338,7 @@ export interface FileRouteTypes {
     | '/help'
     | '/_authenticated/authority'
     | '/_authenticated/business'
+    | '/_authenticated/lmo'
     | '/_authenticated/onboarding'
     | '/verify/$code'
     | '/verify/'
@@ -300,12 +348,15 @@ export interface FileRouteTypes {
     | '/_authenticated/authority/notifications'
     | '/_authenticated/authority/profile'
     | '/_authenticated/authority/queue'
+    | '/_authenticated/authority/smart-route'
+    | '/_authenticated/authority/verify'
     | '/_authenticated/business/certificates'
     | '/_authenticated/business/dashboard'
     | '/_authenticated/business/instruments'
     | '/_authenticated/business/notifications'
     | '/_authenticated/business/profile'
     | '/_authenticated/business/requests'
+    | '/_authenticated/lmo/smart-route'
     | '/_authenticated/authority/'
     | '/_authenticated/business/'
   fileRoutesById: FileRoutesById
@@ -361,6 +412,13 @@ declare module '@tanstack/react-router' {
       path: '/business'
       fullPath: '/business'
       preLoaderRoute: typeof AuthenticatedBusinessRouteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/lmo': {
+      id: '/_authenticated/lmo'
+      path: '/lmo'
+      fullPath: '/lmo'
+      preLoaderRoute: typeof AuthenticatedLmoRouteRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/onboarding': {
@@ -433,6 +491,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAuthorityQueueRouteImport
       parentRoute: typeof AuthenticatedAuthorityRouteRoute
     }
+    '/_authenticated/authority/smart-route': {
+      id: '/_authenticated/authority/smart-route'
+      path: '/smart-route'
+      fullPath: '/authority/smart-route'
+      preLoaderRoute: typeof AuthenticatedAuthoritySmartRouteRouteImport
+      parentRoute: typeof AuthenticatedAuthorityRouteRoute
+    }
+    '/_authenticated/authority/verify': {
+      id: '/_authenticated/authority/verify'
+      path: '/verify'
+      fullPath: '/authority/verify'
+      preLoaderRoute: typeof AuthenticatedAuthorityVerifyRouteImport
+      parentRoute: typeof AuthenticatedAuthorityRouteRoute
+    }
     '/_authenticated/business/': {
       id: '/_authenticated/business/'
       path: '/'
@@ -482,6 +554,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedBusinessRequestsRouteImport
       parentRoute: typeof AuthenticatedBusinessRouteRoute
     }
+    '/_authenticated/lmo/smart-route': {
+      id: '/_authenticated/lmo/smart-route'
+      path: '/smart-route'
+      fullPath: '/lmo/smart-route'
+      preLoaderRoute: typeof AuthenticatedLmoSmartRouteRouteImport
+      parentRoute: typeof AuthenticatedLmoRouteRoute
+    }
   }
 }
 
@@ -492,6 +571,8 @@ interface AuthenticatedAuthorityRouteRouteChildren {
   AuthenticatedAuthorityNotificationsRoute: typeof AuthenticatedAuthorityNotificationsRoute
   AuthenticatedAuthorityProfileRoute: typeof AuthenticatedAuthorityProfileRoute
   AuthenticatedAuthorityQueueRoute: typeof AuthenticatedAuthorityQueueRoute
+  AuthenticatedAuthoritySmartRouteRoute: typeof AuthenticatedAuthoritySmartRouteRoute
+  AuthenticatedAuthorityVerifyRoute: typeof AuthenticatedAuthorityVerifyRoute
   AuthenticatedAuthorityIndexRoute: typeof AuthenticatedAuthorityIndexRoute
 }
 
@@ -506,6 +587,9 @@ const AuthenticatedAuthorityRouteRouteChildren: AuthenticatedAuthorityRouteRoute
       AuthenticatedAuthorityNotificationsRoute,
     AuthenticatedAuthorityProfileRoute: AuthenticatedAuthorityProfileRoute,
     AuthenticatedAuthorityQueueRoute: AuthenticatedAuthorityQueueRoute,
+    AuthenticatedAuthoritySmartRouteRoute:
+      AuthenticatedAuthoritySmartRouteRoute,
+    AuthenticatedAuthorityVerifyRoute: AuthenticatedAuthorityVerifyRoute,
     AuthenticatedAuthorityIndexRoute: AuthenticatedAuthorityIndexRoute,
   }
 
@@ -543,9 +627,23 @@ const AuthenticatedBusinessRouteRouteWithChildren =
     AuthenticatedBusinessRouteRouteChildren,
   )
 
+interface AuthenticatedLmoRouteRouteChildren {
+  AuthenticatedLmoSmartRouteRoute: typeof AuthenticatedLmoSmartRouteRoute
+}
+
+const AuthenticatedLmoRouteRouteChildren: AuthenticatedLmoRouteRouteChildren = {
+  AuthenticatedLmoSmartRouteRoute: AuthenticatedLmoSmartRouteRoute,
+}
+
+const AuthenticatedLmoRouteRouteWithChildren =
+  AuthenticatedLmoRouteRoute._addFileChildren(
+    AuthenticatedLmoRouteRouteChildren,
+  )
+
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAuthorityRouteRoute: typeof AuthenticatedAuthorityRouteRouteWithChildren
   AuthenticatedBusinessRouteRoute: typeof AuthenticatedBusinessRouteRouteWithChildren
+  AuthenticatedLmoRouteRoute: typeof AuthenticatedLmoRouteRouteWithChildren
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
 }
 
@@ -553,6 +651,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAuthorityRouteRoute:
     AuthenticatedAuthorityRouteRouteWithChildren,
   AuthenticatedBusinessRouteRoute: AuthenticatedBusinessRouteRouteWithChildren,
+  AuthenticatedLmoRouteRoute: AuthenticatedLmoRouteRouteWithChildren,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
 }
 

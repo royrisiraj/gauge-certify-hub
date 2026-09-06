@@ -21,6 +21,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import {
+  BusinessLocationPicker,
+  type BusinessLocationData,
+} from "@/components/emaap/BusinessLocationPicker";
 
 export const Route = createFileRoute("/_authenticated/authority/profile")({
   head: () => ({
@@ -46,6 +50,19 @@ function AuthorityProfilePage() {
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [designation, setDesignation] = useState("");
+
+  // Office Address location state
+  const [officeLocation, setOfficeLocation] = useState<BusinessLocationData>({
+    addressLine: "",
+    locality: "",
+    city: "",
+    state: "",
+    pincode: "",
+    latitude: null,
+    longitude: null,
+    formattedAddress: "",
+    source: "manual",
+  });
 
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -74,13 +91,35 @@ function AuthorityProfilePage() {
     if (account?.designation) setDesignation(account.designation);
   }, [account]);
 
+  // Sync authority jurisdiction_label into the location picker
+  useEffect(() => {
+    if (authority?.jurisdiction_label) {
+      setOfficeLocation((prev) => ({
+        ...prev,
+        addressLine: authority.jurisdiction_label || "",
+        formattedAddress: authority.jurisdiction_label || "",
+      }));
+    }
+  }, [authority]);
+
   // Save Mutation
   const saveProfileMutation = useMutation({
     mutationFn: async () => {
       if (!userId) throw new Error("Not authenticated");
       if (!fullName.trim()) throw new Error("Full name is required");
 
-      const { error } = await supabase
+      // Validate office address
+      const hasOfficeAddress = Boolean(
+        officeLocation.addressLine.trim() ||
+        officeLocation.formattedAddress.trim() ||
+        (officeLocation.city.trim() || officeLocation.state.trim() || officeLocation.pincode.trim())
+      );
+      if (!hasOfficeAddress) {
+        throw new Error("Office Address is required. Enter an address, pick on the map, or use your current location.");
+      }
+
+      // Update profile
+      const { error: profileError } = await supabase
         .from("profiles")
         .update({
           full_name: fullName.trim(),
@@ -89,10 +128,30 @@ function AuthorityProfilePage() {
         })
         .eq("id", userId);
 
-      if (error) throw error;
+      if (profileError) throw profileError;
+
+      // Update authority jurisdiction_label with the office address
+      if (authorityId) {
+        const addressStr =
+          officeLocation.formattedAddress.trim() ||
+          officeLocation.addressLine.trim() ||
+          [officeLocation.addressLine, officeLocation.locality, officeLocation.city, officeLocation.state, officeLocation.pincode ? `PIN: ${officeLocation.pincode}` : ""]
+            .filter(Boolean)
+            .join(", ");
+
+        const { error: authorityError } = await supabase
+          .from("verification_authorities")
+          .update({
+            jurisdiction_label: addressStr || null,
+          } as never)
+          .eq("id", authorityId);
+
+        if (authorityError) throw authorityError;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: accountQueryKey });
+      queryClient.invalidateQueries({ queryKey: ["emaap", "authority"] });
       setSaveSuccess(true);
       setSaveError(null);
       setTimeout(() => setSaveSuccess(false), 4000);
@@ -176,64 +235,74 @@ function AuthorityProfilePage() {
             e.preventDefault();
             saveProfileMutation.mutate();
           }}
-          className="space-y-4 max-w-xl"
+          className="space-y-4"
         >
-          <div>
-            <Label htmlFor="officer-name" className="text-xs font-semibold text-slate-700">
-              Full Legal Name <span className="text-red-500">*</span>
-            </Label>
-            <Input
-              id="officer-name"
-              className="mt-1"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              placeholder="e.g. Inspector Rajesh Kumar"
-              required
-            />
+          <div className="max-w-xl space-y-4">
+            <div>
+              <Label htmlFor="officer-name" className="text-xs font-semibold text-slate-700">
+                Full Legal Name <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="officer-name"
+                className="mt-1"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="e.g. Inspector Rajesh Kumar"
+                required
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="officer-designation" className="text-xs font-semibold text-slate-700">
+                Official Designation
+              </Label>
+              <Input
+                id="officer-designation"
+                className="mt-1"
+                value={designation}
+                onChange={(e) => setDesignation(e.target.value)}
+                placeholder="e.g. Legal Metrology Officer (LMO) Grade-I"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="officer-phone" className="text-xs font-semibold text-slate-700">
+                Contact Phone Number
+              </Label>
+              <Input
+                id="officer-phone"
+                type="tel"
+                className="mt-1"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="+91 98765 43210"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="officer-email" className="text-xs font-semibold text-slate-700">
+                Registered Email (Account)
+              </Label>
+              <Input
+                id="officer-email"
+                type="email"
+                className="mt-1 bg-slate-50 text-slate-500"
+                value={account?.email ?? ""}
+                disabled
+              />
+              <p className="mt-1 text-[11px] text-slate-400">
+                Email is managed through authentication credentials.
+              </p>
+            </div>
           </div>
 
-          <div>
-            <Label htmlFor="officer-designation" className="text-xs font-semibold text-slate-700">
-              Official Designation
-            </Label>
-            <Input
-              id="officer-designation"
-              className="mt-1"
-              value={designation}
-              onChange={(e) => setDesignation(e.target.value)}
-              placeholder="e.g. Legal Metrology Officer (LMO) Grade-I"
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="officer-phone" className="text-xs font-semibold text-slate-700">
-              Contact Phone Number
-            </Label>
-            <Input
-              id="officer-phone"
-              type="tel"
-              className="mt-1"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="+91 98765 43210"
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="officer-email" className="text-xs font-semibold text-slate-700">
-              Registered Email (Account)
-            </Label>
-            <Input
-              id="officer-email"
-              type="email"
-              className="mt-1 bg-slate-50 text-slate-500"
-              value={account?.email ?? ""}
-              disabled
-            />
-            <p className="mt-1 text-[11px] text-slate-400">
-              Email is managed through authentication credentials.
-            </p>
-          </div>
+          {/* ── Office Address with Location Picker ── */}
+          <BusinessLocationPicker
+            value={officeLocation}
+            onChange={(val) => setOfficeLocation(val)}
+            label="Office Address"
+            description="Provide the official address of your Legal Metrology office or verification authority. Enter the address manually, select a point on the map, or use your current location."
+          />
 
           <div className="pt-2">
             <Button

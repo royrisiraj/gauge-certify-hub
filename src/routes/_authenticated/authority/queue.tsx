@@ -2,14 +2,15 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  ClipboardList,
-  Search,
-  Loader2,
-  AlertTriangle,
   CheckCircle2,
+  AlertTriangle,
+  Loader2,
   UserPlus,
+  Search,
+  Calendar,
   Clock,
-  ArrowRight,
+  Eye,
+  FileCheck2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAccount } from "@/lib/emaap/session";
@@ -19,6 +20,14 @@ import { EmptyState } from "@/components/emaap/EmptyState";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { formatDate, formatDateTime } from "@/lib/emaap/format";
 
 type QueueRow = {
@@ -31,6 +40,8 @@ type QueueRow = {
   instrument_id: string;
   business_id: string;
   reason: string | null;
+  preferred_date?: string | null;
+  preferred_time_slot?: string | null;
   instruments?: { public_code: string; serial_number: string; category: string } | null;
   businesses?: { name: string; city: string | null } | null;
 };
@@ -57,6 +68,7 @@ function AuthorityQueuePage() {
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "submitted" | "assigned" | "under_review">("all");
+  const [selectedQueueItem, setSelectedQueueItem] = useState<QueueRow | null>(null);
 
   const {
     data: requests = [],
@@ -68,7 +80,7 @@ function AuthorityQueuePage() {
       let query = supabase
         .from("verification_requests")
         .select(
-          "id, status, request_type, submitted_at, assigned_to, assigned_at, instrument_id, business_id, reason, instruments(public_code, serial_number, category), businesses(name, city)",
+          "id, status, request_type, submitted_at, assigned_to, assigned_at, instrument_id, business_id, reason, preferred_date, preferred_time_slot, instruments(public_code, serial_number, category), businesses(name, city)",
         )
         .in("status", ["submitted", "assigned", "under_review"])
         .order("submitted_at", { ascending: false });
@@ -193,14 +205,39 @@ function AuthorityQueuePage() {
                   {req.businesses?.city ? `, ${req.businesses.city}` : ""} · Submitted{" "}
                   {formatDate(req.submitted_at)}
                 </p>
+                {/* Clearly display Preferred Date and Preferred Time Slot */}
+                {(req.preferred_date || req.preferred_time_slot) && (
+                  <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
+                    {req.preferred_date && (
+                      <span className="inline-flex items-center gap-1.5 rounded-md bg-blue-50 px-2.5 py-1 font-semibold text-[#000080] border border-blue-200">
+                        <Calendar className="size-3.5 text-[#000080]" aria-hidden="true" />
+                        <span>Preferred Date: {formatDate(req.preferred_date)}</span>
+                      </span>
+                    )}
+                    {req.preferred_time_slot && (
+                      <span className="inline-flex items-center gap-1.5 rounded-md bg-slate-100 px-2.5 py-1 font-semibold text-slate-800 border border-slate-200">
+                        <Clock className="size-3.5 text-slate-600" aria-hidden="true" />
+                        <span>Preferred Time Slot: {req.preferred_time_slot}</span>
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 <StatusBadge status={req.status} size="sm" />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1 text-xs"
+                  onClick={() => setSelectedQueueItem(req)}
+                >
+                  <Eye className="size-3.5" />
+                  View Details
+                </Button>
                 {req.status === "submitted" && (
                   <Button
                     size="sm"
-                    variant="outline"
-                    className="gap-1 text-xs"
+                    className="gap-1 text-xs bg-[#000080] hover:bg-[#000080]/90 text-white"
                     disabled={claimMutation.isPending}
                     onClick={() => claimMutation.mutate(req.id)}
                   >
@@ -213,6 +250,96 @@ function AuthorityQueuePage() {
           ))}
         </div>
       )}
+
+      {/* REQUEST DETAIL DIALOG */}
+      <Dialog open={!!selectedQueueItem} onOpenChange={(open) => !open && setSelectedQueueItem(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-slate-900 flex items-center gap-2">
+              <FileCheck2 className="size-5 text-[#000080]" aria-hidden="true" />
+              Verification Request Details
+            </DialogTitle>
+            <DialogDescription className="text-[13px] text-slate-600">
+              Formal inspection and certification request from commercial establishment.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedQueueItem && (
+            <div className="space-y-4 py-2 text-[14px]">
+              {/* Instrument Info */}
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                <span className="text-slate-500 block text-[11px] font-semibold uppercase">
+                  Instrument
+                </span>
+                <div className="font-bold text-slate-900">{selectedQueueItem.instruments?.category ?? "Instrument"}</div>
+                <div className="text-slate-600 font-mono text-[12px]">
+                  SN: {selectedQueueItem.instruments?.serial_number ?? "—"} ({selectedQueueItem.instruments?.public_code ?? "—"})
+                </div>
+              </div>
+
+              {/* Business Info */}
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                <span className="text-slate-500 block text-[11px] font-semibold uppercase">
+                  Business Entity
+                </span>
+                <div className="font-bold text-slate-900">{selectedQueueItem.businesses?.name ?? "Business"}</div>
+                {selectedQueueItem.businesses?.city && (
+                  <div className="text-slate-600 text-[12px]">{selectedQueueItem.businesses.city}</div>
+                )}
+              </div>
+
+              {/* Requested Appointment Preferences */}
+              <div className="rounded-xl border border-blue-200 bg-blue-50/60 p-3.5 space-y-2">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#000080] block">
+                  Requested Appointment Preference
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[13px]">
+                  <div>
+                    <span className="text-slate-500 text-[11px] block">Preferred Date</span>
+                    <span className="font-semibold text-slate-900 flex items-center gap-1.5 mt-0.5">
+                      <Calendar className="size-3.5 text-[#000080]" />
+                      {selectedQueueItem.preferred_date ? formatDate(selectedQueueItem.preferred_date) : "Not specified"}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 text-[11px] block">Preferred Time Slot</span>
+                    <span className="font-semibold text-slate-900 flex items-center gap-1.5 mt-0.5">
+                      <Clock className="size-3.5 text-[#000080]" />
+                      {selectedQueueItem.preferred_time_slot ?? "Not specified"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Business Notes */}
+              {selectedQueueItem.reason && (
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-[13px]">
+                  <span className="text-slate-500 block text-[11px] font-semibold uppercase">
+                    Notes
+                  </span>
+                  <p className="text-slate-700 mt-0.5">{selectedQueueItem.reason}</p>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setSelectedQueueItem(null)}>
+              Close
+            </Button>
+            {selectedQueueItem?.status === "submitted" && (
+              <Button
+                className="bg-[#000080] hover:bg-[#000080]/90 text-white"
+                disabled={claimMutation.isPending}
+                onClick={() => {
+                  claimMutation.mutate(selectedQueueItem.id);
+                  setSelectedQueueItem(null);
+                }}
+              >
+                Claim Request
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

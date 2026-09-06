@@ -41,17 +41,35 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import {
+  BusinessLocationPicker,
+  type BusinessLocationData,
+} from "@/components/emaap/BusinessLocationPicker";
+import { format, isBefore, startOfDay } from "date-fns";
+import { cn } from "@/lib/utils";
+
+export const PREFERRED_TIME_SLOTS = [
+  "09:00 AM – 11:00 AM",
+  "11:00 AM – 01:00 PM",
+  "02:00 PM – 04:00 PM",
+  "04:00 PM – 06:00 PM",
+] as const;
 
 const STANDARD_CATEGORIES = [
   "Non-Automatic Weighing Instrument (NAWI)",
-  "Automatic Weighing Instrument",
-  "Electronic Retail Counter Scale",
-  "Platform Scale / Heavy Industrial",
-  "Liquid Fuel Dispenser (Petrol/Diesel)",
-  "Storage Tank Capacity Measure",
-  "Linear Measure / Meter",
-  "Volumetric Measure",
-  "Other Metrology Equipment",
+  "Automatic Catchweighing Instrument",
+  "Fuel Dispenser / Flow Meter",
+  "Storage Tank Metering System",
+  "Material Measure of Length",
+  "Standard Test Weight",
+  "Weighbridge (Heavy Capacity)",
+  "Other Legal Metrology Equipment",
 ];
 
 const STANDARD_UNITS = ["kg", "g", "mg", "tonne", "L", "mL", "m", "cm"];
@@ -68,9 +86,11 @@ type InstrumentRow = {
   resolution_value: number | null;
   unit: string;
   location_label: string | null;
-  status: "active" | "inactive";
+  latitude: number | null;
+  longitude: number | null;
+  status: string;
   created_at: string;
-  certificates?: Array<{
+  certificates: Array<{
     id: string;
     certificate_number: string;
     verification_code: string;
@@ -84,6 +104,8 @@ type InstrumentRow = {
     status: string;
     request_type: string;
     submitted_at: string;
+    preferred_date?: string | null;
+    preferred_time_slot?: string | null;
   }>;
 };
 
@@ -126,7 +148,19 @@ function BusinessInstrumentsPage() {
   const [capacityUnit, setCapacityUnit] = useState("kg");
   const [resolutionValue, setResolutionValue] = useState("");
   const [unit, setUnit] = useState("kg");
-  const [locationLabel, setLocationLabel] = useState("");
+  const [instrumentLocation, setInstrumentLocation] = useState<BusinessLocationData>({
+    addressLine: "",
+    locality: "",
+    city: "",
+    state: "",
+    pincode: "",
+    latitude: null,
+    longitude: null,
+    formattedAddress: "",
+    source: "manual",
+  });
+  const [isSameAsBusiness, setIsSameAsBusiness] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
   const [registerError, setRegisterError] = useState<string | null>(null);
 
   // Detail View State
@@ -136,6 +170,9 @@ function BusinessInstrumentsPage() {
   const [verificationTarget, setVerificationTarget] = useState<InstrumentRow | null>(null);
   const [requestType, setRequestType] = useState("periodic");
   const [requestReason, setRequestReason] = useState("");
+  const [preferredDate, setPreferredDate] = useState<Date | undefined>(undefined);
+  const [preferredTimeSlot, setPreferredTimeSlot] = useState<string>("");
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [requestError, setRequestError] = useState<string | null>(null);
   const [requestSuccess, setRequestSuccess] = useState(false);
 
@@ -148,9 +185,35 @@ function BusinessInstrumentsPage() {
   const capUnitId = useId();
   const resValId = useId();
   const unitId = useId();
-  const locId = useId();
   const reqTypeId = useId();
   const reqReasonId = useId();
+
+  // Fetch saved business location for "Same as Business Location" feature
+  const { data: savedBusinessLocation } = useQuery({
+    queryKey: ["emaap", "business", "location", businessId],
+    queryFn: async () => {
+      if (!businessId) return null;
+      const { data, error } = await supabase
+        .from("businesses")
+        .select("address_line, locality, city, state, pincode, latitude, longitude")
+        .eq("id", businessId)
+        .maybeSingle();
+      if (error || !data) return null;
+      const loc: BusinessLocationData = {
+        addressLine: data.address_line || "",
+        locality: data.locality || "",
+        city: data.city || "",
+        state: data.state || "",
+        pincode: data.pincode || "",
+        latitude: data.latitude ?? null,
+        longitude: data.longitude ?? null,
+        formattedAddress: [data.address_line, data.locality, data.city, data.state, data.pincode ? `PIN: ${data.pincode}` : ""].filter(Boolean).join(", "),
+        source: "business",
+      };
+      return loc;
+    },
+    enabled: !!businessId,
+  });
 
   // Query Instruments
   const {
@@ -176,6 +239,8 @@ function BusinessInstrumentsPage() {
           resolution_value,
           unit,
           location_label,
+          latitude,
+          longitude,
           status,
           created_at,
           certificates(
@@ -191,7 +256,9 @@ function BusinessInstrumentsPage() {
             id,
             status,
             request_type,
-            submitted_at
+            submitted_at,
+            preferred_date,
+            preferred_time_slot
           )
         `,
         )
@@ -210,9 +277,21 @@ function BusinessInstrumentsPage() {
       if (!manufacturer.trim()) throw new Error("Manufacturer is required");
       if (!model.trim()) throw new Error("Model is required");
       if (!serialNumber.trim()) throw new Error("Serial number is required");
+      if (!capacityValue.trim()) throw new Error("Max Capacity is required");
+
+      // Validate instrument location (mandatory)
+      const hasLocationAddress = Boolean(
+        instrumentLocation.addressLine.trim() && (instrumentLocation.city.trim() || instrumentLocation.state.trim() || instrumentLocation.pincode.trim())
+      );
+      const hasLocationCoords = Boolean(instrumentLocation.latitude && instrumentLocation.longitude);
+      if (!hasLocationAddress && !hasLocationCoords) {
+        throw new Error("Instrument Location is required. Provide an address, use the map, use your current location, or select 'Same as Business Location'.");
+      }
 
       const parsedCapacity = capacityValue ? parseFloat(capacityValue) : null;
       const parsedResolution = resolutionValue ? parseFloat(resolutionValue) : null;
+
+      const locationLabel = instrumentLocation.formattedAddress || instrumentLocation.addressLine.trim() || null;
 
       const { data, error } = await supabase
         .from("instruments")
@@ -226,9 +305,11 @@ function BusinessInstrumentsPage() {
           capacity_unit: capacityUnit || unit,
           resolution_value: parsedResolution,
           unit: unit || "kg",
-          location_label: locationLabel.trim() || null,
+          location_label: locationLabel,
+          latitude: instrumentLocation.latitude,
+          longitude: instrumentLocation.longitude,
           status: "active",
-        })
+        } as never)
         .select()
         .single();
 
@@ -239,12 +320,27 @@ function BusinessInstrumentsPage() {
       queryClient.invalidateQueries({ queryKey: ["emaap", "business"] });
       setIsRegisterOpen(false);
       // Reset form
+      setCategory(STANDARD_CATEGORIES[0]);
       setManufacturer("");
       setModel("");
       setSerialNumber("");
       setCapacityValue("");
+      setCapacityUnit("kg");
       setResolutionValue("");
-      setLocationLabel("");
+      setUnit("kg");
+      setInstrumentLocation({
+        addressLine: "",
+        locality: "",
+        city: "",
+        state: "",
+        pincode: "",
+        latitude: null,
+        longitude: null,
+        formattedAddress: "",
+        source: "manual",
+      });
+      setIsSameAsBusiness(false);
+      setLocationError(null);
       setRegisterError(null);
     },
     onError: (err: Error) => {
@@ -257,11 +353,28 @@ function BusinessInstrumentsPage() {
     mutationFn: async () => {
       if (!businessId || !verificationTarget) throw new Error("Missing request context");
 
+      if (!preferredDate) {
+        throw new Error("Preferred Verification Date is mandatory.");
+      }
+
+      const today = startOfDay(new Date());
+      if (isBefore(startOfDay(preferredDate), today)) {
+        throw new Error("Preferred Verification Date cannot be in the past.");
+      }
+
+      if (!preferredTimeSlot) {
+        throw new Error("Preferred Time Slot is mandatory.");
+      }
+
+      const formattedDate = format(preferredDate, "yyyy-MM-dd");
+
       const { error } = await supabase.from("verification_requests").insert({
         business_id: businessId,
         instrument_id: verificationTarget.id,
         request_type: requestType,
         reason: requestReason.trim() || null,
+        preferred_date: formattedDate,
+        preferred_time_slot: preferredTimeSlot,
         status: "submitted",
       });
 
@@ -274,6 +387,8 @@ function BusinessInstrumentsPage() {
         setVerificationTarget(null);
         setRequestSuccess(false);
         setRequestReason("");
+        setPreferredDate(undefined);
+        setPreferredTimeSlot("");
         setRequestError(null);
       }, 1500);
     },
@@ -572,7 +687,7 @@ function BusinessInstrumentsPage() {
                     </div>
                     {inst.location_label ? (
                       <div className="col-span-2">
-                        <span className="text-slate-400 block">Premises Location:</span>
+                        <span className="text-slate-400 block">Instrument Location:</span>
                         <span className="text-slate-800">{inst.location_label}</span>
                       </div>
                     ) : null}
@@ -721,7 +836,7 @@ function BusinessInstrumentsPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <Label htmlFor={capValId} className="text-[13px] font-semibold text-slate-700">
-                  Max Capacity (Optional)
+                  Max Capacity <span className="text-red-500">*</span>
                 </Label>
                 <div className="flex gap-2 mt-1">
                   <Input
@@ -732,6 +847,7 @@ function BusinessInstrumentsPage() {
                     onChange={(e) => setCapacityValue(e.target.value)}
                     placeholder="e.g. 50"
                     className="text-[14px]"
+                    required
                   />
                   <Select value={capacityUnit} onValueChange={setCapacityUnit}>
                     <SelectTrigger id={capUnitId} className="w-24">
@@ -763,22 +879,26 @@ function BusinessInstrumentsPage() {
               </div>
             </div>
 
-            {/* Physical Location in Establishment */}
-            <div>
-              <Label htmlFor={locId} className="text-[13px] font-semibold text-slate-700">
-                Installation Location in Premises (Optional)
-              </Label>
-              <Input
-                id={locId}
-                value={locationLabel}
-                onChange={(e) => setLocationLabel(e.target.value)}
-                placeholder="e.g. Billing Counter 1, Kitchen Dispense, Warehouse Loading Bay"
-                className="mt-1 text-[14px]"
-              />
-              <p className="mt-1 text-[12px] text-slate-500">
-                Helps the Legal Metrology officer locate the equipment during on-site inspection.
-              </p>
-            </div>
+            {/* Instrument Location (Mandatory) */}
+            <BusinessLocationPicker
+              value={instrumentLocation}
+              onChange={(val) => {
+                setInstrumentLocation(val);
+                setLocationError(null);
+                // If user manually edits, clear "same as business" state
+                if (val.source !== "business") {
+                  setIsSameAsBusiness(false);
+                }
+              }}
+              error={locationError}
+              label="Instrument Location"
+              description="Specify where this instrument is physically installed. Enter the address, pick a point on the map, use your current GPS location, or copy from your registered business address."
+              allowSameAsBusiness={!!savedBusinessLocation}
+              businessLocation={savedBusinessLocation ?? null}
+              isSameAsBusiness={isSameAsBusiness}
+              onSameAsBusinessChange={setIsSameAsBusiness}
+            />
+
           </div>
 
           <DialogFooter className="mt-4 gap-2 sm:gap-0">
@@ -885,13 +1005,50 @@ function BusinessInstrumentsPage() {
                 </div>
                 <div className="rounded-lg border border-slate-100 bg-slate-50 p-3">
                   <span className="text-slate-400 block text-[11px] font-semibold uppercase">
-                    Location in Store
+                    Instrument Location
                   </span>
-                  <span className="font-medium text-slate-900">
+                  <span className="font-medium text-slate-900 block">
                     {selectedInstrument.location_label || "Not specified"}
                   </span>
+                  {selectedInstrument.latitude != null && selectedInstrument.longitude != null ? (
+                    <span className="text-[11px] text-slate-500 font-mono mt-0.5 block">
+                      Coordinates: {selectedInstrument.latitude.toFixed(6)}, {selectedInstrument.longitude.toFixed(6)}
+                    </span>
+                  ) : null}
                 </div>
               </div>
+
+              {/* Active Verification Request Info */}
+              {selectedInstrument.verification_requests && selectedInstrument.verification_requests[0] ? (
+                (() => {
+                  const req = selectedInstrument.verification_requests[0];
+                  return (
+                    <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-3.5 space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[12px] font-bold uppercase text-[#000080] flex items-center gap-1.5">
+                          <FileCheck2 className="size-4 text-[#000080]" aria-hidden="true" />
+                          Verification Request
+                        </span>
+                        <StatusBadge status={req.status} size="sm" />
+                      </div>
+                      <div className="flex flex-wrap items-center gap-3 text-[12px] text-slate-700 pt-1">
+                        {req.preferred_date ? (
+                          <span className="flex items-center gap-1 font-medium">
+                            <Calendar className="size-3.5 text-[#000080]" />
+                            Preferred: {new Date(req.preferred_date).toLocaleDateString()}
+                          </span>
+                        ) : null}
+                        {req.preferred_time_slot ? (
+                          <span className="flex items-center gap-1 font-medium">
+                            <Clock className="size-3.5 text-slate-500" />
+                            {req.preferred_time_slot}
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                  );
+                })()
+              ) : null}
 
               {/* Latest Certificate Info */}
               {selectedInstrument.certificates && selectedInstrument.certificates[0] ? (
@@ -931,7 +1088,15 @@ function BusinessInstrumentsPage() {
       {/* REQUEST VERIFICATION DIALOG */}
       <Dialog
         open={!!verificationTarget}
-        onOpenChange={(open) => !open && setVerificationTarget(null)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setVerificationTarget(null);
+            setPreferredDate(undefined);
+            setPreferredTimeSlot("");
+            setRequestReason("");
+            setRequestError(null);
+          }
+        }}
       >
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -991,6 +1156,77 @@ function BusinessInstrumentsPage() {
                 </Select>
               </div>
 
+              {/* Preferred Verification Date (Mandatory) */}
+              <div>
+                <Label className="text-[13px] font-semibold text-slate-700">
+                  Preferred Verification Date <span className="text-red-500">*</span>
+                </Label>
+                <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      id="preferred-date-picker-btn"
+                      type="button"
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal mt-1 h-10 border-slate-300",
+                        !preferredDate && "text-muted-foreground",
+                      )}
+                    >
+                      <Calendar className="mr-2 size-4 text-[#000080]" aria-hidden="true" />
+                      {preferredDate ? (
+                        <span className="font-medium text-slate-900">{format(preferredDate, "PPP")}</span>
+                      ) : (
+                        <span>Select preferred inspection date…</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 z-[60] bg-white shadow-lg border border-slate-200" align="start">
+                    <CalendarComponent
+                      mode="single"
+                      selected={preferredDate}
+                      onSelect={(date) => {
+                        setPreferredDate(date);
+                        setDatePickerOpen(false);
+                        if (requestError) setRequestError(null);
+                      }}
+                      disabled={(date) => isBefore(startOfDay(date), startOfDay(new Date()))}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+                <p className="mt-1 text-[11px] text-slate-500">
+                  Select your requested appointment date. Past dates are disabled.
+                </p>
+              </div>
+
+              {/* Preferred Time Slot (Mandatory) */}
+              <div>
+                <Label htmlFor="preferred-time-slot" className="text-[13px] font-semibold text-slate-700">
+                  Preferred Time Slot <span className="text-red-500">*</span>
+                </Label>
+                <Select
+                  value={preferredTimeSlot}
+                  onValueChange={(val) => {
+                    setPreferredTimeSlot(val);
+                    if (requestError) setRequestError(null);
+                  }}
+                >
+                  <SelectTrigger id="preferred-time-slot" className="mt-1 border-slate-300">
+                    <SelectValue placeholder="Choose preferred time window…" />
+                  </SelectTrigger>
+                  <SelectContent className="z-[60] bg-white">
+                    {PREFERRED_TIME_SLOTS.map((slot) => (
+                      <SelectItem key={slot} value={slot}>
+                        {slot}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="mt-1 text-[11px] text-slate-500">
+                  Configurable appointment preference for LMO officer scheduling.
+                </p>
+              </div>
+
               <div>
                 <Label htmlFor={reqReasonId} className="text-[13px] font-semibold text-slate-700">
                   Notes or Operational Timing (Optional)
@@ -1018,7 +1254,7 @@ function BusinessInstrumentsPage() {
               </Button>
               <Button
                 onClick={() => requestVerificationMutation.mutate()}
-                disabled={requestVerificationMutation.isPending}
+                disabled={requestVerificationMutation.isPending || !preferredDate || !preferredTimeSlot}
                 className="bg-[#000080] hover:bg-[#000080]/90 text-white font-medium"
               >
                 {requestVerificationMutation.isPending ? (

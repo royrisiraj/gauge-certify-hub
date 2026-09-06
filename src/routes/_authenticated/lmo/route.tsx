@@ -1,32 +1,22 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { AppShell, type NavItem } from "@/components/emaap/AppShell";
+import { AppShell } from "@/components/emaap/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { loadAccount, homePathForRole } from "@/lib/emaap/session";
+import { NAV } from "../authority/route";
 
-export const NAV: NavItem[] = [
-  { label: "Dashboard", to: "/authority/dashboard" },
-  { label: "Queue", to: "/authority/queue" },
-  { label: "Assignments", to: "/authority/assignments" },
-  { label: "Certificates", to: "/authority/certificates" },
-  { label: "Notifications", to: "/authority/notifications" },
-  { label: "Profile", to: "/authority/profile" },
-  { label: "Smart Route", to: "/lmo/smart-route" },
-  { label: "Verify", to: "/authority/verify" },
-];
-
-export const Route = createFileRoute("/_authenticated/authority")({
-  // Role gate for the UI only; the backend enforces authority scope.
+export const Route = createFileRoute("/_authenticated/lmo")({
+  // Role gate for the UI; backend enforces authority scope.
   beforeLoad: async () => {
     const account = await loadAccount();
     if (!account) throw redirect({ to: "/auth" });
     if (account.role !== "inspector") throw redirect({ to: homePathForRole(account.role) });
     return { account };
   },
-  component: AuthorityLayout,
+  component: LmoLayout,
 });
 
-function AuthorityLayout() {
+function LmoLayout() {
   const { data: unread } = useQuery({
     queryKey: ["emaap", "notifications", "unread"],
     queryFn: async () => {

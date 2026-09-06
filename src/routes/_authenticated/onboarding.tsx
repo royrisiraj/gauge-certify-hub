@@ -118,6 +118,20 @@ function OnboardingPage() {
   });
   const [locationError, setLocationError] = useState<string | null>(null);
 
+  // Office Location state (for LMO Officer role)
+  const [officeLocation, setOfficeLocation] = useState<BusinessLocationData>({
+    addressLine: "",
+    locality: "",
+    city: "",
+    state: "",
+    pincode: "",
+    latitude: null,
+    longitude: null,
+    formattedAddress: "",
+    source: "manual",
+  });
+  const [officeLocationError, setOfficeLocationError] = useState<string | null>(null);
+
   // Verification authorities for LMO Officer onboarding
   const { data: authorities, isLoading: authoritiesLoading } = useQuery({
     queryKey: ["emaap", "authorities"],
@@ -140,6 +154,14 @@ function OnboardingPage() {
     if (account?.authorityId) {
       const match = authorities?.find((a) => a.id === account.authorityId);
       setAuthorityId((prev) => prev || match?.name || account.authorityId || "");
+      if (match?.jurisdiction_label || match?.name) {
+        const addr = match.jurisdiction_label || match.name || "";
+        setOfficeLocation((prev) => ({
+          ...prev,
+          addressLine: prev.addressLine || addr,
+          formattedAddress: prev.formattedAddress || addr,
+        }));
+      }
     }
   }, [account?.fullName, account?.phone, account?.designation, account?.authorityId, authorities]);
 
@@ -154,6 +176,7 @@ function OnboardingPage() {
     event.preventDefault();
     setError(null);
     setLocationError(null);
+    setOfficeLocationError(null);
 
     if (!fullName.trim()) {
       setError("Please enter your full name.");
@@ -197,8 +220,17 @@ function OnboardingPage() {
     }
 
     if (effectiveRole === "inspector") {
-      if (!authorityId.trim()) {
-        setError("Please enter the legal metrology office / verification authority.");
+      const hasOfficeAddress = Boolean(
+        officeLocation.addressLine.trim() ||
+        officeLocation.formattedAddress.trim() ||
+        (officeLocation.city.trim() || officeLocation.state.trim() || officeLocation.pincode.trim()) ||
+        (officeLocation.latitude !== null && officeLocation.longitude !== null)
+      );
+
+      if (!hasOfficeAddress) {
+        const msg = "Please enter your office address or select a location on the map.";
+        setError(msg);
+        setOfficeLocationError(msg);
         return;
       }
 
@@ -220,15 +252,23 @@ function OnboardingPage() {
       let resolvedAuthorityId: string | undefined = undefined;
       if (effectiveRole === "inspector") {
         const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-        const trimmed = authorityId.trim();
-        if (UUID_REGEX.test(trimmed)) {
-          resolvedAuthorityId = trimmed;
+        const addressText = (
+          officeLocation.formattedAddress ||
+          officeLocation.addressLine ||
+          officeLocation.city ||
+          authorityId
+        ).trim();
+
+        if (authorityId && UUID_REGEX.test(authorityId.trim())) {
+          resolvedAuthorityId = authorityId.trim();
         } else if (authorities && authorities.length > 0) {
           const match = authorities.find(
             (a) =>
-              a.name.toLowerCase().trim() === trimmed.toLowerCase() ||
-              a.name.toLowerCase().includes(trimmed.toLowerCase()) ||
-              (a.jurisdiction_label && a.jurisdiction_label.toLowerCase().includes(trimmed.toLowerCase()))
+              (addressText && (
+                a.name.toLowerCase().includes(addressText.toLowerCase()) ||
+                (a.jurisdiction_label && a.jurisdiction_label.toLowerCase().includes(addressText.toLowerCase()))
+              )) ||
+              (a.jurisdiction_label && addressText.toLowerCase().includes(a.jurisdiction_label.toLowerCase()))
           );
           resolvedAuthorityId = match?.id ?? authorities[0]?.id ?? "11111111-1111-1111-1111-111111111111";
         } else {
@@ -388,6 +428,35 @@ function OnboardingPage() {
         }
       }
 
+      // Update authority jurisdiction_label with office address if available
+      if (effectiveRole === "inspector" && resolvedAuthorityId) {
+        const addressStr =
+          officeLocation.formattedAddress.trim() ||
+          officeLocation.addressLine.trim() ||
+          [
+            officeLocation.addressLine,
+            officeLocation.locality,
+            officeLocation.city,
+            officeLocation.state,
+            officeLocation.pincode ? `PIN: ${officeLocation.pincode}` : "",
+          ]
+            .filter(Boolean)
+            .join(", ");
+
+        if (addressStr) {
+          try {
+            await supabase
+              .from("verification_authorities")
+              .update({
+                jurisdiction_label: addressStr,
+              } as never)
+              .eq("id", resolvedAuthorityId);
+          } catch (err) {
+            console.warn("Authority jurisdiction update error (non-fatal):", err);
+          }
+        }
+      }
+
       // Invalidate account cache and fetch fresh account state to guarantee business_id is set
       await queryClient.invalidateQueries({ queryKey: accountQueryKey });
       const freshAccount = await queryClient.fetchQuery({
@@ -422,11 +491,7 @@ function OnboardingPage() {
 
   return (
     <PublicShell variant="onboarding">
-      <div
-        className={`mx-auto w-full px-4 py-8 sm:py-12 transition-all duration-200 ${
-          isBusiness ? "max-w-[760px]" : "max-w-[640px]"
-        }`}
-      >
+      <div className="mx-auto w-full max-w-[760px] px-4 py-8 sm:py-12 transition-all duration-200">
         {accountLoading ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <Loader2 className="size-8 animate-spin text-[#000080]" aria-hidden="true" />
@@ -588,27 +653,17 @@ function OnboardingPage() {
                 ) : (
                   /* LMO Officer Specific Fields */
                   <>
-                    <div>
-                      <Label
-                        htmlFor="authority"
-                        className="text-[13px] font-semibold text-slate-800"
-                      >
-                        Verification Authority / Office <span className="text-error">*</span>
-                      </Label>
-                      <Input
-                        id="authority"
-                        type="text"
-                        required
-                        value={authorityId}
-                        onChange={(e) => setAuthorityId(e.target.value)}
-                        placeholder="e.g. District Legal Metrology Office"
-                        className="mt-1.5 h-11 border-slate-300 focus-visible:ring-[#000080]"
-                      />
-                      <p className="mt-1.5 text-[12px] text-slate-500">
-                        Official jurisdiction or office for which you conduct verification
-                        inspections.
-                      </p>
-                    </div>
+                    {/* Office Address (Mandatory with BusinessLocationPicker) */}
+                    <BusinessLocationPicker
+                      label="Office Address"
+                      description="Provide the official address of your Legal Metrology office or verification authority. Enter the address manually, select a point on the map, or use your current location."
+                      value={officeLocation}
+                      onChange={(newLoc) => {
+                        setOfficeLocation(newLoc);
+                        if (officeLocationError) setOfficeLocationError(null);
+                      }}
+                      error={officeLocationError}
+                    />
 
                     <div>
                       <Label
