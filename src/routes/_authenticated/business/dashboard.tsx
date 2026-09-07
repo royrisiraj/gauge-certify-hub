@@ -140,7 +140,7 @@ function BusinessDashboard() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 min-w-0 w-full">
       {/* Page Header with Action */}
       <PageHeader
         title={business?.name ? `${business.name} — Dashboard` : "Business Dashboard"}
@@ -163,7 +163,7 @@ function BusinessDashboard() {
       />
 
       {/* 5 Real Metrics Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5 min-w-0">
         <MetricCard
           label="Total Instruments"
           value={totalInstruments}
@@ -240,9 +240,9 @@ function BusinessDashboard() {
         </div>
       ) : (
         /* Instrument Overview + Recent Requests & Certificates */
-        <div className="space-y-8">
+        <div className="space-y-8 min-w-0">
           {/* Instrument Overview */}
-          <div className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm">
+          <div className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm overflow-hidden min-w-0 max-w-full">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
               <div>
                 <h2 className="text-[17px] font-bold text-slate-900">
@@ -265,8 +265,8 @@ function BusinessDashboard() {
               </Button>
             </div>
 
-            <div className="mt-4 overflow-x-auto">
-              <table className="w-full text-left text-[14px]">
+            <div className="mt-4 w-full overflow-x-auto">
+              <table className="w-full min-w-[640px] text-left text-[14px]">
                 <thead>
                   <tr className="border-b border-slate-200/80 text-[12px] font-semibold uppercase tracking-wider text-slate-500">
                     <th className="py-2.5 pr-4">Code</th>
@@ -281,25 +281,25 @@ function BusinessDashboard() {
                 <tbody className="divide-y divide-slate-100">
                   {recentInstruments.map((inst) => (
                     <tr key={inst.id} className="hover:bg-slate-50/70 transition-colors">
-                      <td className="py-3 pr-4 font-mono text-[13px] font-medium text-slate-800">
+                      <td className="py-3 pr-4 font-mono text-[13px] font-medium text-slate-800 whitespace-nowrap">
                         {inst.public_code}
                       </td>
-                      <td className="py-3 px-4 font-medium text-slate-900">{inst.category}</td>
-                      <td className="py-3 px-4 text-slate-600">
+                      <td className="py-3 px-4 font-medium text-slate-900 break-words max-w-[200px]">{inst.category}</td>
+                      <td className="py-3 px-4 text-slate-600 break-words max-w-[200px]">
                         {inst.manufacturer} {inst.model}
                       </td>
-                      <td className="py-3 px-4 font-mono text-[13px] text-slate-600">
+                      <td className="py-3 px-4 font-mono text-[13px] text-slate-600 whitespace-nowrap">
                         {inst.serial_number}
                       </td>
-                      <td className="py-3 px-4 text-slate-600">
+                      <td className="py-3 px-4 text-slate-600 whitespace-nowrap">
                         {inst.capacity_value
                           ? `${inst.capacity_value} ${inst.capacity_unit || inst.unit}`
                           : inst.unit}
                       </td>
-                      <td className="py-3 px-4">
+                      <td className="py-3 px-4 whitespace-nowrap">
                         <StatusBadge status={inst.status} size="sm" />
                       </td>
-                      <td className="py-3 pl-4 text-right">
+                      <td className="py-3 pl-4 text-right whitespace-nowrap">
                         <Button asChild variant="outline" size="sm" className="h-7 text-[12px]">
                           <Link to="/business/instruments">View</Link>
                         </Button>
@@ -312,9 +312,9 @@ function BusinessDashboard() {
           </div>
 
           {/* Two-Column Grid: Recent Verification Requests & Recent Certificates */}
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 min-w-0">
             {/* Recent Verification Requests */}
-            <div className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm">
+            <div className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm overflow-hidden min-w-0">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div className="flex items-center gap-2">
                   <Clock className="size-4 text-[#000080]" aria-hidden="true" />
@@ -339,25 +339,25 @@ function BusinessDashboard() {
               ) : (
                 <div className="mt-4 divide-y divide-slate-100">
                   {recentRequests.map((req) => (
-                    <div key={req.id} className="py-3 flex items-start justify-between gap-3">
-                      <div>
-                        <div className="flex items-center gap-2">
+                    <div key={req.id} className="py-3 flex items-start justify-between gap-3 min-w-0">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-mono text-[12px] font-semibold text-slate-800">
                             REQ-{req.id.slice(0, 8).toUpperCase()}
                           </span>
                           <StatusBadge status={req.status} size="sm" />
                         </div>
-                        <p className="mt-1 text-[13px] font-medium text-slate-700">
+                        <p className="mt-1 text-[13px] font-medium text-slate-700 break-words">
                           {req.instruments
                             ? `${req.instruments.category} (${req.instruments.serial_number})`
                             : "Instrument"}
                         </p>
                         <div className="mt-0.5 flex items-center gap-2 text-[12px] text-slate-500">
-                          <Calendar className="size-3.5" aria-hidden="true" />
+                          <Calendar className="size-3.5 shrink-0" aria-hidden="true" />
                           <span>Submitted: {new Date(req.submitted_at).toLocaleDateString()}</span>
                         </div>
                       </div>
-                      <Button asChild variant="outline" size="sm" className="h-7 text-[12px]">
+                      <Button asChild variant="outline" size="sm" className="h-7 text-[12px] shrink-0">
                         <Link to="/business/requests">Track</Link>
                       </Button>
                     </div>
@@ -367,7 +367,7 @@ function BusinessDashboard() {
             </div>
 
             {/* Recent Certificates */}
-            <div className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm">
+            <div className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm overflow-hidden min-w-0">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div className="flex items-center gap-2">
                   <Award className="size-4 text-[#ff671f]" aria-hidden="true" />
@@ -390,15 +390,15 @@ function BusinessDashboard() {
               ) : (
                 <div className="mt-4 divide-y divide-slate-100">
                   {recentCertificates.map((cert) => (
-                    <div key={cert.id} className="py-3 flex items-start justify-between gap-3">
-                      <div>
-                        <div className="flex items-center gap-2">
+                    <div key={cert.id} className="py-3 flex items-start justify-between gap-3 min-w-0">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-mono text-[13px] font-bold text-slate-800">
                             {cert.certificate_number}
                           </span>
                           <StatusBadge status={cert.status} size="sm" />
                         </div>
-                        <p className="mt-1 text-[13px] text-slate-700">
+                        <p className="mt-1 text-[13px] text-slate-700 break-words">
                           {cert.instruments
                             ? `${cert.instruments.category} — ${cert.instruments.manufacturer} ${cert.instruments.model}`
                             : "Commercial Instrument"}
@@ -407,7 +407,7 @@ function BusinessDashboard() {
                           Valid until: {new Date(cert.valid_until).toLocaleDateString()}
                         </p>
                       </div>
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1.5 shrink-0">
                         <Button asChild variant="outline" size="sm" className="h-7 text-[12px]">
                           <Link to="/business/certificates">View</Link>
                         </Button>

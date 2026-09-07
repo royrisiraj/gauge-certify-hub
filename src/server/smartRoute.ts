@@ -57,7 +57,7 @@ export function haversineDistance(
  * Computes the priority score based on prompt specifications:
  * - Priority: High 50, Medium 30, Low 10
  * - Pendency: >=10 days 30, 5-9 days 20, <5 days 10
- * - Proximity: <2 km 20, 2-5 km 10
+ * - Proximity: <2 km 20, 2-10 km 10
  */
 export function calculateScores(
   priority: "High" | "Medium" | "Low",
@@ -82,7 +82,7 @@ export function calculateScores(
     pendencyPoints = 20;
   }
 
-  // 3. Proximity Score (Sites are pre-filtered <= 5km)
+  // 3. Proximity Score (Sites are pre-filtered <= 10km)
   let proximityPoints = 10;
   if (distanceKm < 2.0) {
     proximityPoints = 20;
@@ -250,7 +250,7 @@ export async function generateSmartRoute({
 
   const rawList = (requests ?? []) as unknown as RawRequest[];
 
-  // Candidate evaluation within 5km
+  // Candidate evaluation within 10km
   const candidates: Array<Omit<RouteSite, "sequence">> = [];
 
   for (const req of rawList) {
@@ -267,8 +267,8 @@ export async function generateSmartRoute({
     // Calculate distance
     const distKm = haversineDistance(officerLat, officerLng, siteLat, siteLng);
 
-    // Filter to sites within 5 km of officer coordinates
-    if (distKm > 5.0) continue;
+    // Filter to sites within 10 km of officer coordinates
+    if (distKm > 10.0) continue;
 
     // Days pending
     const submittedTime = req.submitted_at ? new Date(req.submitted_at).getTime() : now;

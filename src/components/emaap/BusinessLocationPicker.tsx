@@ -10,6 +10,8 @@ import {
   LocateFixed,
   RotateCcw,
   Building,
+  Check,
+  X,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -706,8 +708,12 @@ export function BusinessLocationPicker({
                 title="Copy the address and coordinates from your registered business location"
               >
                 <span className="flex items-center gap-1.5">
-                  <Building className="size-4" aria-hidden="true" />
-                  <span>{isSameAsBusiness ? "✓ Using Business Location" : "Same as Business Location"}</span>
+                  {isSameAsBusiness ? (
+                    <Check className="size-4" aria-hidden="true" />
+                  ) : (
+                    <Building className="size-4" aria-hidden="true" />
+                  )}
+                  <span>{isSameAsBusiness ? "Using Business Location" : "Same as Business Location"}</span>
                 </span>
               </Button>
             ) : null}
@@ -768,10 +774,10 @@ export function BusinessLocationPicker({
             <button
               type="button"
               onClick={() => setGeoNotice(null)}
-              className="text-slate-400 hover:text-slate-700 text-xs px-1 font-bold cursor-pointer"
+              className="text-slate-400 hover:text-slate-700 text-xs p-1 font-bold cursor-pointer rounded hover:bg-slate-100 flex items-center justify-center"
               aria-label="Dismiss notice"
             >
-              ✕
+              <X className="size-3.5" aria-hidden="true" />
             </button>
           </div>
         ) : null}

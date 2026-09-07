@@ -34,9 +34,6 @@ export function StatusBadge({ status, withExplanation = false, size = "md", clas
         )}
       >
         <Icon aria-hidden="true" className={size === "sm" ? "size-3.5" : "size-4"} />
-        <span aria-hidden="true" className="font-bold">
-          {meta.glyph}
-        </span>
         <span>{meta.label}</span>
       </span>
       {withExplanation && meta.explanation ? (

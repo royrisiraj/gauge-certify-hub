@@ -133,7 +133,7 @@ function BusinessNotificationsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0 w-full">
       <PageHeader
         title="Notifications"
         description="Official alerts regarding verification requests, officer inspection visits, and certificate renewals."
@@ -155,7 +155,7 @@ function BusinessNotificationsPage() {
       />
 
       {/* Filter Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-200 pb-3">
+      <div className="flex items-center gap-2 border-b border-slate-200 pb-3 flex-wrap">
         <Button
           variant={filter === "all" ? "default" : "ghost"}
           size="sm"
@@ -210,31 +210,31 @@ function BusinessNotificationsPage() {
                   isUnread ? "border-blue-200 bg-blue-50/40 shadow-xs" : "border-slate-200 bg-white"
                 }`}
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-start gap-3">
+                <div className="flex items-start justify-between gap-3 min-w-0">
+                  <div className="flex items-start gap-3 min-w-0 flex-1">
                     <div
                       className={`mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg ${
                         isUnread ? "bg-[#000080] text-white" : "bg-slate-100 text-slate-500"
                       }`}
                     >
-                      <Bell className="size-4" aria-hidden="true" />
+                      <Bell className="size-4 shrink-0" aria-hidden="true" />
                     </div>
 
-                    <div className="space-y-1">
+                    <div className="space-y-1 min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="text-[15px] font-bold text-slate-900">{notif.title}</h3>
+                        <h3 className="text-[15px] font-bold text-slate-900 break-words">{notif.title}</h3>
                         {isUnread ? (
-                          <Badge className="bg-[#000080] text-white text-[11px] font-medium h-5">
+                          <Badge className="bg-[#000080] text-white text-[11px] font-medium h-5 shrink-0">
                             New
                           </Badge>
                         ) : null}
                       </div>
 
-                      <p className="text-[14px] text-slate-700 leading-relaxed">{notif.body}</p>
+                      <p className="text-[14px] text-slate-700 leading-relaxed break-words">{notif.body}</p>
 
                       <div className="flex items-center gap-3 pt-1 text-[12px] text-slate-500">
                         <span className="flex items-center gap-1">
-                          <Clock className="size-3.5" aria-hidden="true" />
+                          <Clock className="size-3.5 shrink-0" aria-hidden="true" />
                           {new Date(notif.created_at).toLocaleString()}
                         </span>
                       </div>

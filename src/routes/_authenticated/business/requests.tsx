@@ -15,6 +15,8 @@ import {
   Scale,
   ShieldCheck,
   XCircle,
+  Check,
+  X,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAccount } from "@/lib/emaap/session";
@@ -237,7 +239,7 @@ function BusinessRequestsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0 w-full">
       <PageHeader
         title="Verification Requests"
         description="Track formal requests submitted to Legal Metrology authorities for initial or periodic stamping."
@@ -260,8 +262,8 @@ function BusinessRequestsPage() {
       />
 
       {/* Filter and Search Bar */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-        <div className="relative flex-1 max-w-md">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between bg-white p-4 rounded-xl border border-slate-200 shadow-sm min-w-0">
+        <div className="relative flex-1 max-w-md min-w-0">
           <Search
             className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400"
             aria-hidden="true"
@@ -281,7 +283,7 @@ function BusinessRequestsPage() {
             Status:
           </Label>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger id="status-filter" className="w-[180px] text-[13px] border-slate-200">
+            <SelectTrigger id="status-filter" className="w-full sm:w-[180px] text-[13px] border-slate-200">
               <SelectValue placeholder="All Statuses" />
             </SelectTrigger>
             <SelectContent>
@@ -328,9 +330,9 @@ function BusinessRequestsPage() {
           </Button>
         </div>
       ) : (
-        <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+        <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden min-w-0 max-w-full">
           {/* Desktop Table */}
-          <div className="hidden md:block overflow-x-auto">
+          <div className="hidden md:block w-full overflow-x-auto">
             <table className="w-full text-left text-[14px]">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50/70 text-[12px] font-semibold uppercase tracking-wider text-slate-600">
@@ -346,16 +348,16 @@ function BusinessRequestsPage() {
               <tbody className="divide-y divide-slate-100">
                 {filteredRequests.map((req) => (
                   <tr key={req.id} className="hover:bg-slate-50/60 transition-colors">
-                    <td className="py-3.5 px-4 font-mono font-semibold text-slate-800 text-[13px]">
+                    <td className="py-3.5 px-4 font-mono font-semibold text-slate-800 text-[13px] whitespace-nowrap">
                       REQ-{req.id.slice(0, 8).toUpperCase()}
                     </td>
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4 max-w-[240px]">
                       {req.instruments ? (
                         <div>
-                          <div className="font-semibold text-slate-900">
+                          <div className="font-semibold text-slate-900 break-words">
                             {req.instruments.category}
                           </div>
-                          <div className="font-mono text-[12px] text-slate-500">
+                          <div className="font-mono text-[12px] text-slate-500 break-words">
                             SN: {req.instruments.serial_number} ({req.instruments.public_code})
                           </div>
                         </div>
@@ -470,7 +472,7 @@ function BusinessRequestsPage() {
                   {/* Step 1 */}
                   <div className="flex items-start gap-3">
                     <div className="flex size-6 items-center justify-center rounded-full bg-[#138808] text-white text-[12px] font-bold">
-                      ✓
+                      <Check className="size-3.5" aria-hidden="true" />
                     </div>
                     <div>
                       <div className="font-semibold text-slate-900 text-[13px]">
@@ -491,7 +493,11 @@ function BusinessRequestsPage() {
                           : "bg-[#138808] text-white"
                       }`}
                     >
-                      {selectedRequest.status === "submitted" ? "2" : "✓"}
+                      {selectedRequest.status === "submitted" ? (
+                        "2"
+                      ) : (
+                        <Check className="size-3.5" aria-hidden="true" />
+                      )}
                     </div>
                     <div>
                       <div className="font-semibold text-slate-900 text-[13px]">
@@ -515,7 +521,11 @@ function BusinessRequestsPage() {
                           : "border border-slate-300 bg-white text-slate-400"
                       }`}
                     >
-                      {selectedRequest.status === "completed" ? "✓" : "3"}
+                      {selectedRequest.status === "completed" ? (
+                        <Check className="size-3.5" aria-hidden="true" />
+                      ) : (
+                        "3"
+                      )}
                     </div>
                     <div>
                       <div className="font-semibold text-slate-900 text-[13px]">
@@ -542,11 +552,13 @@ function BusinessRequestsPage() {
                             : "border border-slate-300 bg-white text-slate-400"
                       }`}
                     >
-                      {selectedRequest.status === "completed"
-                        ? "✓"
-                        : selectedRequest.status === "rejected"
-                          ? "×"
-                          : "4"}
+                      {selectedRequest.status === "completed" ? (
+                        <Check className="size-3.5" aria-hidden="true" />
+                      ) : selectedRequest.status === "rejected" ? (
+                        <X className="size-3.5" aria-hidden="true" />
+                      ) : (
+                        "4"
+                      )}
                     </div>
                     <div>
                       <div className="font-semibold text-slate-900 text-[13px]">

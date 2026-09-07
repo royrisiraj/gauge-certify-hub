@@ -53,7 +53,7 @@ export function AppShell({
       {/* Signature tricolor top accent bar */}
       <div className="h-1 w-full bg-gradient-to-r from-[#ff671f] via-[#000080] to-[#138808]" />
       <header className="border-b border-border bg-white sticky top-0 z-30 shadow-[0_1px_3px_rgba(0,0,80,0.03)]">
-        <div className="mx-auto flex min-h-16 w-full max-w-[1240px] flex-wrap items-center justify-between gap-3 px-4 py-2.5 md:px-8">
+        <div className="mx-auto flex min-h-16 w-full max-w-[1240px] flex-wrap items-center justify-between gap-3 px-4 py-2.5 md:px-8 min-w-0">
           <div className="flex items-center gap-3">
             <BrandLockup />
             {contextLabel ? (
@@ -117,7 +117,7 @@ export function AppShell({
           </nav>
         </div>
       </header>
-      <main id="main" className={cn("mx-auto w-full max-w-[1240px] flex-1 px-4 py-8 md:px-8")}>
+      <main id="main" className={cn("mx-auto w-full max-w-[1240px] flex-1 px-4 py-8 md:px-8 min-w-0")}>
         {children}
       </main>
       <footer className="border-t border-border bg-white mt-auto">
@@ -131,7 +131,7 @@ export function AppShell({
             <span className="h-0.5 w-8 rounded-full bg-[#138808]" aria-hidden="true" />
           </div>
         </div>
-        <div className="mx-auto w-full max-w-[1240px] px-4 py-4 text-[12px] text-muted-foreground md:px-8 flex flex-col sm:flex-row items-center justify-between gap-2">
+        <div className="mx-auto w-full max-w-[1240px] px-4 py-4 text-[12px] text-muted-foreground md:px-8 flex flex-col sm:flex-row items-center justify-between gap-2 min-w-0">
           <span>e-Maap Authoritative Metrology Management System</span>
           <span>Records marked as demo are illustrative only.</span>
         </div>

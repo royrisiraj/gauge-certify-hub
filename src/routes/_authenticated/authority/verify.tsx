@@ -629,6 +629,16 @@ function InspectionView({
       if (isNaN(ref)) throw new Error("Reference value must be a valid number");
       if (isNaN(obs)) throw new Error("Observed value must be a valid number");
 
+      // ── Capacity-aware validation ──
+      const maxCap = inst?.capacity_value != null ? Number(inst.capacity_value) : null;
+      const capUnit = inst?.capacity_unit || inst?.unit || "unit";
+      if (maxCap != null && maxCap > 0) {
+        if (ref < 0) throw new Error(`Reference value cannot be negative.`);
+        if (obs < 0) throw new Error(`Observed value cannot be negative.`);
+        if (ref > maxCap) throw new Error(`Reference value cannot exceed the instrument capacity of ${maxCap} ${capUnit}.`);
+        if (obs > maxCap) throw new Error(`Observed value cannot exceed the instrument capacity of ${maxCap} ${capUnit}.`);
+      }
+
       const deviation = obs - ref;
       const nextIndex = measurements.length + 1;
 
@@ -1167,11 +1177,24 @@ function InspectionView({
             </div>
 
             {/* Add Measurement Form (only when in_progress) */}
-            {inspection.status === "in_progress" && (
+            {inspection.status === "in_progress" && (() => {
+              const maxCap = inst?.capacity_value != null ? Number(inst.capacity_value) : null;
+              const capUnit = inst?.capacity_unit || inst?.unit || "unit";
+              const refNum = newRefValue ? parseFloat(newRefValue) : null;
+              const obsNum = newObsValue ? parseFloat(newObsValue) : null;
+              const refExceedsCapacity = maxCap != null && maxCap > 0 && refNum != null && !isNaN(refNum) && (refNum < 0 || refNum > maxCap);
+              const obsExceedsCapacity = maxCap != null && maxCap > 0 && obsNum != null && !isNaN(obsNum) && (obsNum < 0 || obsNum > maxCap);
+              return (
               <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50/60 p-4 space-y-3">
                 <h4 className="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
                   <Plus className="size-3.5" /> Add Measurement Point
                 </h4>
+                {maxCap != null && maxCap > 0 && (
+                  <div className="text-[12px] text-slate-600 bg-blue-50 border border-blue-200 rounded-md px-3 py-1.5 flex items-center gap-1.5">
+                    <Scale className="size-3.5 text-blue-600 shrink-0" />
+                    <span>Instrument Capacity: <strong className="text-slate-800">{maxCap} {capUnit}</strong> — values must be between 0 and {maxCap} {capUnit}.</span>
+                  </div>
+                )}
                 {measError && (
                   <p className="text-[12px] text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-1.5">{measError}</p>
                 )}
@@ -1184,11 +1207,16 @@ function InspectionView({
                       id={refId}
                       type="number"
                       step="any"
+                      min="0"
+                      max={maxCap != null && maxCap > 0 ? String(maxCap) : undefined}
                       value={newRefValue}
                       onChange={(e) => setNewRefValue(e.target.value)}
                       placeholder="e.g. 10.000"
-                      className="mt-1 font-mono"
+                      className={cn("mt-1 font-mono", refExceedsCapacity && "border-red-400 focus-visible:ring-red-400")}
                     />
+                    {refExceedsCapacity && (
+                      <p className="text-[11px] text-red-600 mt-0.5">Value cannot exceed the instrument capacity of {maxCap} {capUnit}.</p>
+                    )}
                   </div>
                   <div>
                     <Label htmlFor={obsId} className="text-[12px] font-semibold text-slate-600">
@@ -1198,11 +1226,16 @@ function InspectionView({
                       id={obsId}
                       type="number"
                       step="any"
+                      min="0"
+                      max={maxCap != null && maxCap > 0 ? String(maxCap) : undefined}
                       value={newObsValue}
                       onChange={(e) => setNewObsValue(e.target.value)}
                       placeholder="e.g. 10.005"
-                      className="mt-1 font-mono"
+                      className={cn("mt-1 font-mono", obsExceedsCapacity && "border-red-400 focus-visible:ring-red-400")}
                     />
+                    {obsExceedsCapacity && (
+                      <p className="text-[11px] text-red-600 mt-0.5">Value cannot exceed the instrument capacity of {maxCap} {capUnit}.</p>
+                    )}
                   </div>
                   <div>
                     <Label htmlFor={noteId} className="text-[12px] font-semibold text-slate-600">
@@ -1220,7 +1253,7 @@ function InspectionView({
                 <Button
                   size="sm"
                   onClick={() => addMeasurementMutation.mutate()}
-                  disabled={!selectedRule || addMeasurementMutation.isPending || !newRefValue || !newObsValue}
+                  disabled={!selectedRule || addMeasurementMutation.isPending || !newRefValue || !newObsValue || refExceedsCapacity || obsExceedsCapacity}
                   className="gap-1.5 bg-[#000080] hover:bg-[#000080]/90 text-white"
                 >
                   {addMeasurementMutation.isPending ? (
@@ -1236,7 +1269,8 @@ function InspectionView({
                   </p>
                 )}
               </div>
-            )}
+              );
+            })()}
 
             {/* Inspection Notes & Submit */}
             {inspection.status === "in_progress" && (
@@ -1554,13 +1588,13 @@ function InspectionView({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="verified">
-                    ✅ Verified — Instrument meets all standards
+                    Verified — Instrument meets all standards
                   </SelectItem>
                   <SelectItem value="verified_with_conditions">
-                    ⚠️ Verified with Conditions — Meets standards with conditions
+                    Verified with Conditions — Meets standards with conditions
                   </SelectItem>
                   <SelectItem value="failed">
-                    ❌ Failed — Instrument does not meet standards
+                    Failed — Instrument does not meet standards
                   </SelectItem>
                 </SelectContent>
               </Select>

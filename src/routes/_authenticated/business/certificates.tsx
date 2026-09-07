@@ -189,7 +189,7 @@ function BusinessCertificatesPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0 w-full">
       <PageHeader
         title="Verification Certificates"
         description="Official certificates of verification and re-verification issued under the Legal Metrology Act and Rules."
@@ -197,8 +197,8 @@ function BusinessCertificatesPage() {
       />
 
       {/* Filter and Search Bar */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-        <div className="relative flex-1 max-w-md">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between bg-white p-4 rounded-xl border border-slate-200 shadow-sm min-w-0">
+        <div className="relative flex-1 max-w-md min-w-0">
           <Search
             className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400"
             aria-hidden="true"
@@ -218,7 +218,7 @@ function BusinessCertificatesPage() {
             Status:
           </Label>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger id="status-filter" className="w-[180px] text-[13px] border-slate-200">
+            <SelectTrigger id="status-filter" className="w-full sm:w-[180px] text-[13px] border-slate-200">
               <SelectValue placeholder="All Statuses" />
             </SelectTrigger>
             <SelectContent>
@@ -261,9 +261,9 @@ function BusinessCertificatesPage() {
           </Button>
         </div>
       ) : (
-        <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+        <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden min-w-0 max-w-full">
           {/* Desktop Table */}
-          <div className="hidden md:block overflow-x-auto">
+          <div className="hidden md:block w-full overflow-x-auto">
             <table className="w-full text-left text-[14px]">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50/70 text-[12px] font-semibold uppercase tracking-wider text-slate-600">
@@ -281,7 +281,7 @@ function BusinessCertificatesPage() {
                   const isFailed = cert.status === "failed" || cert.certificate_number.startsWith("VR-");
                   return (
                     <tr key={cert.id} className="hover:bg-slate-50/60 transition-colors">
-                      <td className="py-3.5 px-4 font-mono font-bold text-[#000080] text-[13px]">
+                      <td className="py-3.5 px-4 font-mono font-bold text-[#000080] text-[13px] whitespace-nowrap">
                         <div>{cert.certificate_number}</div>
                         <span
                           className={cn(
@@ -294,13 +294,13 @@ function BusinessCertificatesPage() {
                           {isFailed ? "NOT VERIFIED — FAIL" : "VERIFIED — PASS"}
                         </span>
                       </td>
-                      <td className="py-3.5 px-4">
+                      <td className="py-3.5 px-4 max-w-[220px]">
                         {cert.instruments ? (
                           <div>
-                            <div className="font-semibold text-slate-900">
+                            <div className="font-semibold text-slate-900 break-words">
                               {cert.instruments.category}
                             </div>
-                            <div className="font-mono text-[12px] text-slate-500">
+                            <div className="font-mono text-[12px] text-slate-500 break-words">
                               SN: {cert.instruments.serial_number} ({cert.instruments.public_code})
                             </div>
                           </div>
@@ -310,10 +310,10 @@ function BusinessCertificatesPage() {
                           </span>
                         )}
                       </td>
-                      <td className="py-3.5 px-4 text-slate-600 text-[13px]">
+                      <td className="py-3.5 px-4 text-slate-600 text-[13px] whitespace-nowrap">
                         {new Date(cert.issued_at || cert.valid_from).toLocaleDateString()}
                       </td>
-                      <td className="py-3.5 px-4 text-slate-700 text-[13px]">
+                      <td className="py-3.5 px-4 text-slate-700 text-[13px] whitespace-nowrap">
                         {isFailed ? (
                           <div>
                             <div className="font-semibold text-red-600">NOT VERIFIED</div>
@@ -330,7 +330,7 @@ function BusinessCertificatesPage() {
                           </div>
                         )}
                       </td>
-                      <td className="py-3.5 px-4 text-slate-600 text-[13px]">
+                      <td className="py-3.5 px-4 text-slate-600 text-[13px] max-w-[200px] break-words">
                         {cert.verification_authorities?.name || "Legal Metrology Dept"}
                       </td>
                       <td className="py-3.5 px-4">

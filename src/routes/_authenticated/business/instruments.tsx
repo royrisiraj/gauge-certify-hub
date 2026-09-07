@@ -176,6 +176,14 @@ function BusinessInstrumentsPage() {
   const [requestError, setRequestError] = useState<string | null>(null);
   const [requestSuccess, setRequestSuccess] = useState(false);
 
+  // Change Date/Time Dialog State
+  const [changeDateTarget, setChangeDateTarget] = useState<InstrumentRow | null>(null);
+  const [changeDateValue, setChangeDateValue] = useState<Date | undefined>(undefined);
+  const [changeTimeSlot, setChangeTimeSlot] = useState<string>("");
+  const [changeDatePickerOpen, setChangeDatePickerOpen] = useState(false);
+  const [changeDateError, setChangeDateError] = useState<string | null>(null);
+  const [changeDateSuccess, setChangeDateSuccess] = useState(false);
+
   // Accessibility IDs for forms
   const catId = useId();
   const mfgId = useId();
@@ -278,6 +286,8 @@ function BusinessInstrumentsPage() {
       if (!model.trim()) throw new Error("Model is required");
       if (!serialNumber.trim()) throw new Error("Serial number is required");
       if (!capacityValue.trim()) throw new Error("Max Capacity is required");
+      if (!resolutionValue.trim()) throw new Error("Verification Scale Interval (e / d) is required");
+      if (parseFloat(resolutionValue) <= 0 || isNaN(parseFloat(resolutionValue))) throw new Error("Verification Scale Interval (e / d) must be greater than 0");
 
       // Validate instrument location (mandatory)
       const hasLocationAddress = Boolean(
@@ -397,6 +407,41 @@ function BusinessInstrumentsPage() {
     },
   });
 
+  // Mutation to Update (Change Date/Time) on existing pending verification request
+  const updateVerificationMutation = useMutation({
+    mutationFn: async () => {
+      if (!changeDateTarget) throw new Error("No instrument selected");
+      const pendingReq = changeDateTarget.verification_requests?.find(
+        (r) => r.status === "submitted" || r.status === "assigned" || r.status === "under_review"
+      );
+      if (!pendingReq) throw new Error("No pending verification request found for this instrument.");
+      if (!changeDateValue) throw new Error("Preferred Verification Date is mandatory.");
+      const today = startOfDay(new Date());
+      if (isBefore(startOfDay(changeDateValue), today)) throw new Error("Preferred Verification Date cannot be in the past.");
+      if (!changeTimeSlot) throw new Error("Preferred Time Slot is mandatory.");
+      const formattedDate = format(changeDateValue, "yyyy-MM-dd");
+      const { error } = await supabase
+        .from("verification_requests")
+        .update({ preferred_date: formattedDate, preferred_time_slot: changeTimeSlot })
+        .eq("id", pendingReq.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["emaap", "business"] });
+      setChangeDateSuccess(true);
+      setTimeout(() => {
+        setChangeDateTarget(null);
+        setChangeDateSuccess(false);
+        setChangeDateValue(undefined);
+        setChangeTimeSlot("");
+        setChangeDateError(null);
+      }, 1500);
+    },
+    onError: (err: Error) => {
+      setChangeDateError(err.message || "Failed to update verification schedule");
+    },
+  });
+
   const isLoading = accountLoading || instrumentsLoading;
 
   // Filtered instruments
@@ -447,7 +492,7 @@ function BusinessInstrumentsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0 w-full">
       <PageHeader
         title="Commercial Instruments Registry"
         description="Official inventory of weighing and measuring instruments registered under Legal Metrology rules."
@@ -467,8 +512,8 @@ function BusinessInstrumentsPage() {
       />
 
       {/* Filter and Search Bar */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-        <div className="relative flex-1 max-w-md">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between bg-white p-4 rounded-xl border border-slate-200 shadow-sm min-w-0">
+        <div className="relative flex-1 max-w-md min-w-0">
           <Search
             className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400"
             aria-hidden="true"
@@ -488,7 +533,7 @@ function BusinessInstrumentsPage() {
             Category:
           </Label>
           <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger id="category-select" className="w-[200px] text-[13px] border-slate-200">
+            <SelectTrigger id="category-select" className="w-full sm:w-[200px] text-[13px] border-slate-200">
               <SelectValue placeholder="All Categories" />
             </SelectTrigger>
             <SelectContent>
@@ -535,9 +580,9 @@ function BusinessInstrumentsPage() {
           </Button>
         </div>
       ) : (
-        <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+        <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden min-w-0 max-w-full">
           {/* Desktop & Tablet Table */}
-          <div className="hidden md:block overflow-x-auto">
+          <div className="hidden md:block w-full overflow-x-auto">
             <table className="w-full text-left text-[14px]">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50/70 text-[12px] font-semibold uppercase tracking-wider text-slate-600">
@@ -561,19 +606,19 @@ function BusinessInstrumentsPage() {
 
                   return (
                     <tr key={inst.id} className="hover:bg-slate-50/60 transition-colors">
-                      <td className="py-3.5 px-4 font-mono font-medium text-[#000080] text-[13px]">
+                      <td className="py-3.5 px-4 font-mono font-medium text-[#000080] text-[13px] whitespace-nowrap">
                         {inst.public_code}
                       </td>
-                      <td className="py-3.5 px-4">
-                        <div className="font-semibold text-slate-900">{inst.category}</div>
-                        <div className="text-[13px] text-slate-500">
+                      <td className="py-3.5 px-4 max-w-[220px]">
+                        <div className="font-semibold text-slate-900 break-words">{inst.category}</div>
+                        <div className="text-[13px] text-slate-500 break-words">
                           {inst.manufacturer} • {inst.model}
                         </div>
                       </td>
-                      <td className="py-3.5 px-4 font-mono text-[13px] text-slate-700">
+                      <td className="py-3.5 px-4 font-mono text-[13px] text-slate-700 whitespace-nowrap">
                         {inst.serial_number}
                       </td>
-                      <td className="py-3.5 px-4 text-slate-700">
+                      <td className="py-3.5 px-4 text-slate-700 whitespace-nowrap">
                         {inst.capacity_value
                           ? `${inst.capacity_value} ${inst.capacity_unit || inst.unit}`
                           : inst.unit}
@@ -583,7 +628,7 @@ function BusinessInstrumentsPage() {
                           </span>
                         ) : null}
                       </td>
-                      <td className="py-3.5 px-4 text-slate-600 text-[13px]">
+                      <td className="py-3.5 px-4 text-slate-600 text-[13px] max-w-[200px] break-words">
                         {inst.location_label || (
                           <span className="text-slate-400 italic">Not specified</span>
                         )}
@@ -617,19 +662,68 @@ function BusinessInstrumentsPage() {
                             <Eye className="size-3.5 mr-1" aria-hidden="true" />
                             Details
                           </Button>
-                          <Button
-                            size="sm"
-                            onClick={() => {
-                              setVerificationTarget(inst);
-                              setRequestError(null);
-                              setRequestSuccess(false);
-                            }}
-                            className="h-8 text-[12px] bg-[#000080] text-white hover:bg-[#000080]/90"
-                            title="Request Legal Metrology Verification"
-                          >
-                            <FileCheck2 className="size-3.5 mr-1" aria-hidden="true" />
-                            Verify
-                          </Button>
+                          {(() => {
+                            const pendingReq = inst.verification_requests?.find(
+                              (r) => r.status === "submitted" || r.status === "assigned" || r.status === "under_review"
+                            );
+                            const terminalReq = inst.verification_requests?.find(
+                              (r) => r.status === "completed" || r.status === "rejected" || r.status === "cancelled"
+                            );
+                            if (pendingReq) {
+                              return (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    setChangeDateTarget(inst);
+                                    setChangeDateValue(pendingReq.preferred_date ? new Date(pendingReq.preferred_date) : undefined);
+                                    setChangeTimeSlot(pendingReq.preferred_time_slot || "");
+                                    setChangeDateError(null);
+                                    setChangeDateSuccess(false);
+                                  }}
+                                  className="h-8 text-[12px] border-[#000080] text-[#000080] hover:bg-[#000080]/5"
+                                  title="Change preferred date/time for existing verification request"
+                                >
+                                  <Calendar className="size-3.5 mr-1" aria-hidden="true" />
+                                  Change Date/Time
+                                </Button>
+                              );
+                            }
+                            if (terminalReq && !inst.verification_requests?.some(r => r.status === "submitted" || r.status === "assigned" || r.status === "under_review")) {
+                              // Has a completed/rejected/cancelled request but no pending one — allow new request
+                              return (
+                                <Button
+                                  size="sm"
+                                  onClick={() => {
+                                    setVerificationTarget(inst);
+                                    setRequestError(null);
+                                    setRequestSuccess(false);
+                                  }}
+                                  className="h-8 text-[12px] bg-[#000080] text-white hover:bg-[#000080]/90"
+                                  title="Request Legal Metrology Verification"
+                                >
+                                  <FileCheck2 className="size-3.5 mr-1" aria-hidden="true" />
+                                  Request for Verification
+                                </Button>
+                              );
+                            }
+                            // No request at all
+                            return (
+                              <Button
+                                size="sm"
+                                onClick={() => {
+                                  setVerificationTarget(inst);
+                                  setRequestError(null);
+                                  setRequestSuccess(false);
+                                }}
+                                className="h-8 text-[12px] bg-[#000080] text-white hover:bg-[#000080]/90"
+                                title="Request Legal Metrology Verification"
+                              >
+                                <FileCheck2 className="size-3.5 mr-1" aria-hidden="true" />
+                                Request for Verification
+                              </Button>
+                            );
+                          })()}
                         </div>
                       </td>
                     </tr>
@@ -703,18 +797,44 @@ function BusinessInstrumentsPage() {
                       <Eye className="size-3.5 mr-1" aria-hidden="true" />
                       Details
                     </Button>
-                    <Button
-                      size="sm"
-                      onClick={() => {
-                        setVerificationTarget(inst);
-                        setRequestError(null);
-                        setRequestSuccess(false);
-                      }}
-                      className="flex-1 h-8 text-[12px] bg-[#000080] text-white hover:bg-[#000080]/90"
-                    >
-                      <FileCheck2 className="size-3.5 mr-1" aria-hidden="true" />
-                      Verify
-                    </Button>
+                    {(() => {
+                      const pendingReq = inst.verification_requests?.find(
+                        (r) => r.status === "submitted" || r.status === "assigned" || r.status === "under_review"
+                      );
+                      if (pendingReq) {
+                        return (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setChangeDateTarget(inst);
+                              setChangeDateValue(pendingReq.preferred_date ? new Date(pendingReq.preferred_date) : undefined);
+                              setChangeTimeSlot(pendingReq.preferred_time_slot || "");
+                              setChangeDateError(null);
+                              setChangeDateSuccess(false);
+                            }}
+                            className="flex-1 h-8 text-[12px] border-[#000080] text-[#000080] hover:bg-[#000080]/5"
+                          >
+                            <Calendar className="size-3.5 mr-1" aria-hidden="true" />
+                            Change Date/Time
+                          </Button>
+                        );
+                      }
+                      return (
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            setVerificationTarget(inst);
+                            setRequestError(null);
+                            setRequestSuccess(false);
+                          }}
+                          className="flex-1 h-8 text-[12px] bg-[#000080] text-white hover:bg-[#000080]/90"
+                        >
+                          <FileCheck2 className="size-3.5 mr-1" aria-hidden="true" />
+                          Request for Verification
+                        </Button>
+                      );
+                    })()}
                   </div>
                 </div>
               );
@@ -865,17 +985,22 @@ function BusinessInstrumentsPage() {
               </div>
               <div>
                 <Label htmlFor={resValId} className="text-[13px] font-semibold text-slate-700">
-                  Verification Scale Interval (e / d)
+                  Verification Scale Interval (e / d) <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   id={resValId}
                   type="number"
                   step="any"
+                  min="0.0001"
                   value={resolutionValue}
                   onChange={(e) => setResolutionValue(e.target.value)}
                   placeholder="e.g. 0.1 or 1"
                   className="mt-1 text-[14px]"
+                  required
                 />
+                <p className="mt-1 text-[11px] text-slate-500">
+                  The smallest scale division value. Must be greater than 0.
+                </p>
               </div>
             </div>
 
@@ -1264,6 +1389,152 @@ function BusinessInstrumentsPage() {
                   </>
                 ) : (
                   "Submit Request"
+                )}
+              </Button>
+            </DialogFooter>
+          ) : null}
+        </DialogContent>
+      </Dialog>
+
+      {/* CHANGE DATE/TIME DIALOG */}
+      <Dialog
+        open={!!changeDateTarget}
+        onOpenChange={(open) => {
+          if (!open) {
+            setChangeDateTarget(null);
+            setChangeDateValue(undefined);
+            setChangeTimeSlot("");
+            setChangeDateError(null);
+            setChangeDateSuccess(false);
+          }
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-slate-900 flex items-center gap-2">
+              <Calendar className="size-5 text-[#000080]" aria-hidden="true" />
+              Change Verification Date / Time
+            </DialogTitle>
+            <DialogDescription className="text-[13px] text-slate-600">
+              Update the preferred inspection schedule for your existing verification request.
+            </DialogDescription>
+          </DialogHeader>
+
+          {changeDateSuccess ? (
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-6 text-center text-emerald-800">
+              <CheckCircle2 className="mx-auto size-10 text-emerald-600" aria-hidden="true" />
+              <h3 className="mt-2 text-base font-bold">Schedule Updated!</h3>
+              <p className="mt-1 text-[13px]">
+                Your preferred verification date and time have been updated.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4 py-2 text-[14px]">
+              {changeDateError ? (
+                <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-[13px] text-red-700">
+                  {changeDateError}
+                </div>
+              ) : null}
+
+              {changeDateTarget ? (
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-[13px]">
+                  <span className="text-slate-500 block text-[11px] font-semibold uppercase">
+                    Instrument
+                  </span>
+                  <div className="font-bold text-slate-900">{changeDateTarget.category}</div>
+                  <div className="text-slate-600 font-mono text-[12px]">
+                    SN: {changeDateTarget.serial_number} ({changeDateTarget.public_code})
+                  </div>
+                </div>
+              ) : null}
+
+              {/* New Preferred Date */}
+              <div>
+                <Label className="text-[13px] font-semibold text-slate-700">
+                  New Preferred Date <span className="text-red-500">*</span>
+                </Label>
+                <Popover open={changeDatePickerOpen} onOpenChange={setChangeDatePickerOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal mt-1 h-10 border-slate-300",
+                        !changeDateValue && "text-muted-foreground",
+                      )}
+                    >
+                      <Calendar className="mr-2 size-4 text-[#000080]" aria-hidden="true" />
+                      {changeDateValue ? (
+                        <span className="font-medium text-slate-900">{format(changeDateValue, "PPP")}</span>
+                      ) : (
+                        <span>Select new preferred date…</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 z-[60] bg-white shadow-lg border border-slate-200" align="start">
+                    <CalendarComponent
+                      mode="single"
+                      selected={changeDateValue}
+                      onSelect={(date) => {
+                        setChangeDateValue(date);
+                        setChangeDatePickerOpen(false);
+                        if (changeDateError) setChangeDateError(null);
+                      }}
+                      disabled={(date) => isBefore(startOfDay(date), startOfDay(new Date()))}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {/* New Preferred Time Slot */}
+              <div>
+                <Label className="text-[13px] font-semibold text-slate-700">
+                  New Preferred Time Slot <span className="text-red-500">*</span>
+                </Label>
+                <Select
+                  value={changeTimeSlot}
+                  onValueChange={(val) => {
+                    setChangeTimeSlot(val);
+                    if (changeDateError) setChangeDateError(null);
+                  }}
+                >
+                  <SelectTrigger className="mt-1 border-slate-300">
+                    <SelectValue placeholder="Choose preferred time window…" />
+                  </SelectTrigger>
+                  <SelectContent className="z-[60] bg-white">
+                    {PREFERRED_TIME_SLOTS.map((slot) => (
+                      <SelectItem key={slot} value={slot}>
+                        {slot}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+
+          {!changeDateSuccess ? (
+            <DialogFooter className="mt-3 gap-2 sm:gap-0">
+              <Button
+                variant="outline"
+                onClick={() => setChangeDateTarget(null)}
+                disabled={updateVerificationMutation.isPending}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => updateVerificationMutation.mutate()}
+                disabled={updateVerificationMutation.isPending || !changeDateValue || !changeTimeSlot}
+                className="bg-[#000080] hover:bg-[#000080]/90 text-white font-medium"
+              >
+                {updateVerificationMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 size-4 animate-spin" aria-hidden="true" />
+                    Updating…
+                  </>
+                ) : (
+                  "Update Schedule"
                 )}
               </Button>
             </DialogFooter>

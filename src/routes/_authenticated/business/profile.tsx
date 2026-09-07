@@ -187,7 +187,7 @@ function BusinessProfilePage() {
   }
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6 max-w-4xl min-w-0 w-full">
       <PageHeader
         title="Business Profile & Premises Details"
         description="Establishment identification, verification site address, and authorized representative contact."
@@ -208,9 +208,9 @@ function BusinessProfilePage() {
         </div>
       ) : null}
 
-      <div className="grid grid-cols-1 gap-6">
+      <div className="grid grid-cols-1 gap-6 min-w-0">
         {/* Card 1: Commercial Establishment Details */}
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-5">
+        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-5 min-w-0">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
             <div className="flex items-center gap-2.5">
               <Building2 className="size-5 text-[#000080]" aria-hidden="true" />
@@ -281,7 +281,7 @@ function BusinessProfilePage() {
         </div>
 
         {/* Card 2: Premises Location (For Field Inspection) */}
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-5">
+        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-5 min-w-0">
           <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
             <MapPin className="size-5 text-[#ff671f]" aria-hidden="true" />
             <div>
@@ -349,7 +349,7 @@ function BusinessProfilePage() {
         </div>
 
         {/* Card 3: Authorized Representative Profile */}
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-5">
+        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-5 min-w-0">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
             <div className="flex items-center gap-2.5">
               <User className="size-5 text-[#138808]" aria-hidden="true" />

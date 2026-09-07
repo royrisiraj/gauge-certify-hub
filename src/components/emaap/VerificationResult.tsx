@@ -106,9 +106,6 @@ export function VerificationResult({
               </span>
             </div>
             <h1 id="verification-status" className="text-h2 font-bold tracking-tight mt-0.5">
-              <span aria-hidden="true" className="mr-1.5">
-                {meta.glyph}
-              </span>
               {meta.label}
             </h1>
             <p className="mt-1 text-[15px] font-medium text-foreground">{meta.explanation}</p>

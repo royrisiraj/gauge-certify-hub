@@ -28,25 +28,25 @@ export function MetricCard({ label, value, hint, icon: Icon, to, tone = "default
   const body = (
     <div
       className={cn(
-        "surface-card relative overflow-hidden p-5 transition-all duration-200 hover:shadow-md",
+        "surface-card relative overflow-hidden p-5 transition-all duration-200 hover:shadow-md min-w-0",
         "before:absolute before:top-0 before:left-0 before:right-0 before:h-1",
         getAccentBorder(),
         tone === "attention" && "bg-amber-50/40 border-amber-200/60",
         to && "cursor-pointer hover:border-slate-300",
       )}
     >
-      <div className="flex items-center justify-between gap-3">
-        <span className="text-[13px] font-semibold uppercase tracking-wider text-slate-500">
+      <div className="flex items-center justify-between gap-3 min-w-0">
+        <span className="text-[13px] font-semibold uppercase tracking-wider text-slate-500 min-w-0 break-words">
           {label}
         </span>
         {Icon ? (
           <div
             className={cn(
-              "rounded-lg p-2",
+              "rounded-lg p-2 shrink-0",
               tone === "attention" ? "bg-amber-100 text-[#ff671f]" : "bg-blue-50 text-[#000080]",
             )}
           >
-            <Icon aria-hidden="true" className="size-4" />
+            <Icon aria-hidden="true" className="size-4 shrink-0" />
           </div>
         ) : null}
       </div>
